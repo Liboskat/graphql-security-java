@@ -1,0 +1,9 @@
+directive @auth(r: String) on QUERY
+
+schema @auth(r: "schema = 'schema'") {
+    query : Query
+}
+
+type Query {
+    query: String
+}

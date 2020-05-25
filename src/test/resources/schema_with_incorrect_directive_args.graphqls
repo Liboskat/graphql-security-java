@@ -1,0 +1,10 @@
+directive @auth(d: String) on SCHEMA | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION |
+    INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+schema @auth(d: "schema = 'schema'") {
+    query : Query
+}
+
+type Query {
+    query: String
+}

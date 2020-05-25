@@ -1,0 +1,32 @@
+directive @auth(rw : String, r : String, w : String) on SCHEMA | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION |
+    INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+schema @auth(rw: "schema = 'schema'") {
+    query : Query
+    mutation: Mutation
+}
+
+type Query {
+    query: Output!
+}
+
+type Mutation {
+    mutation(argument: Input @auth(w: "input = 'input'")): Output
+}
+
+type Output {
+    scalarField: Int! @auth(r: "scalarField = 'scalarField'", w: "scalarField = 'scalarField'"),
+    objectField(argument: String): OutputObjectFieldType @auth(rw: "$argument = 'argument'")
+}
+
+type OutputObjectFieldType @auth(rw: "outputObjectFieldType = 'outputObjectFieldType'") {
+    field: String! @auth(rw: "scalarField2 = 'scalarField2'")
+}
+
+input Input {
+    objectField: InputObjectFieldType! @auth(rw: "inputField = 'inputField'")
+}
+
+input InputObjectFieldType @auth(rw: "inputObjectFieldType = 'inputObjectFieldType'") {
+    field: String! @auth(rw: "scalarField3 = 'scalarField3'")
+}

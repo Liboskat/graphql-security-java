@@ -1,0 +1,7 @@
+schema @auth(rw: "schema = 'schema'") {
+    query : Query
+}
+
+type Query {
+    query: String
+}
