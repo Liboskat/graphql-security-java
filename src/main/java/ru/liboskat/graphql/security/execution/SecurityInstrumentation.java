@@ -1,11 +1,15 @@
 package ru.liboskat.graphql.security.execution;
 
+import graphql.ExecutionResult;
 import graphql.execution.AbortExecutionException;
 import graphql.execution.ExecutionContext;
 import graphql.execution.ExecutionStrategyParameters;
 import graphql.execution.MergedField;
 import graphql.execution.instrumentation.ExecutionStrategyInstrumentationContext;
+import graphql.execution.instrumentation.InstrumentationContext;
+import graphql.execution.instrumentation.InstrumentationState;
 import graphql.execution.instrumentation.SimpleInstrumentation;
+import graphql.execution.instrumentation.parameters.InstrumentationExecuteOperationParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
 import graphql.language.*;
 import graphql.schema.*;
@@ -28,58 +32,98 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
     }
 
     @Override
-    public ExecutionStrategyInstrumentationContext beginExecutionStrategy(InstrumentationExecutionStrategyParameters parameters) {
+    public InstrumentationState createState() {
+        return new SecurityInstrumentationState();
+    }
+
+    @Override
+    public InstrumentationContext<ExecutionResult> beginExecuteOperation(InstrumentationExecuteOperationParameters parameters) {
+        SecurityInstrumentationState state = parameters.getInstrumentationState();
         ExecutionContext execContext = parameters.getExecutionContext();
+
+        SecurityContext securityContext = retrieveSecurityContext(execContext.getContext());
+        OperationType operationType;
         try {
-            checkAccess(execContext, parameters.getExecutionStrategyParameters());
+            operationType = retrieveOperationType(execContext.getOperationDefinition());
+        } catch (IllegalArgumentException e) {
+            execContext.addError(new AuthException(e.getMessage()));
+            state.hasErrors = true;
+            throw new AbortExecutionException(execContext.getErrors());
+        }
+
+        try {
+            accessRuleStorage.getSchemaRule()
+                    .ifPresent(rule -> checkRule(operationType, rule, securityContext, null));
         } catch (AuthException e) {
             execContext.addError(e);
+            state.hasErrors = true;
+            throw new AbortExecutionException(execContext.getErrors());
+        }
+
+        state.securityContext = securityContext;
+        state.operationType = operationType;
+        return super.beginExecuteOperation(parameters);
+    }
+
+    @Override
+    public ExecutionStrategyInstrumentationContext beginExecutionStrategy(InstrumentationExecutionStrategyParameters parameters) {
+        ExecutionContext execContext = parameters.getExecutionContext();
+        SecurityInstrumentationState state = parameters.getInstrumentationState();
+        if (state.hasErrors) {
+            throw new AbortExecutionException(execContext.getErrors());
+        }
+        try {
+            checkAccess(parameters.getExecutionStrategyParameters(), state);
+        } catch (AuthException e) {
+            execContext.addError(e);
+            state.hasErrors = true;
             throw new AbortExecutionException(execContext.getErrors());
         }
         return super.beginExecutionStrategy(parameters);
     }
 
-    private void checkAccess(ExecutionContext execContext, ExecutionStrategyParameters execParams) {
-        String operationName = retrieveOperationName(execContext.getOperationDefinition());
-
-        SecurityContext securityContext = retrieveSecurityContext(execContext.getContext());
-
-        accessRuleStorage.getSchemaRule()
-                .ifPresent(rule -> checkRule(operationName, rule, securityContext, null));
+    private void checkAccess(ExecutionStrategyParameters execParams,
+                             SecurityInstrumentationState state) {
+        OperationType operationType = state.operationType;
+        SecurityContext securityContext = state.securityContext;
 
         GraphQLObjectType type = (GraphQLObjectType) execParams.getExecutionStepInfo().getUnwrappedNonNullType();
         String typeName = type.getName();
-        accessRuleStorage.getObjectRule(typeName)
-                .ifPresent(rule -> checkRule(operationName, rule, securityContext, null));
+        if (state.isNotCheckedObject(typeName)) {
+            accessRuleStorage.getObjectRule(typeName)
+                    .ifPresent(rule -> checkRule(operationType, rule, securityContext, null));
+            state.checkedObjects.add(typeName);
+        }
 
         Set<GraphQLInput> inputsToCheck = new HashSet<>();
         execParams.getFields().getSubFields().values()
-                .forEach(mergedField -> processField(inputsToCheck, type, operationName, mergedField, securityContext));
-        inputsToCheck.forEach(input -> checkInput(input, operationName, securityContext));
+                .forEach(mergedField -> processField(inputsToCheck, type, operationType, mergedField, securityContext));
+        inputsToCheck.forEach(input -> checkInput(input, operationType, securityContext, state));
     }
 
-    private void processField(Set<GraphQLInput> inputsToCheck, GraphQLObjectType parentType, String operationName,
+    private void processField(Set<GraphQLInput> inputsToCheck, GraphQLObjectType parentType, OperationType operationType,
                               MergedField mergedField, SecurityContext securityContext) {
         String fieldName = mergedField.getName();
         GraphQLFieldDefinition fieldDefinition = parentType.getFieldDefinition(fieldName);
         mergedField.getFields().forEach(field -> {
             Map<String, String> stringArguments = new HashMap<>();
             field.getArguments()
-                    .forEach(arg -> processArgument(inputsToCheck, stringArguments, operationName, parentType.getName(),
+                    .forEach(arg -> processArgument(inputsToCheck, stringArguments, operationType, parentType.getName(),
                             fieldDefinition, arg, securityContext));
             accessRuleStorage.getFieldRule(parentType.getName(), fieldName)
-                    .ifPresent(rule -> checkRule(operationName, rule, securityContext, stringArguments));
+                    .ifPresent(rule -> checkRule(operationType, rule, securityContext, stringArguments));
         });
     }
 
     private void processArgument(Set<GraphQLInput> inputsToCheck, Map<String, String> stringArguments,
-                                 String operationName, String parentTypeName, GraphQLFieldDefinition fieldDefinition,
-                                 Argument argument, SecurityContext securityContext) {
+                                 OperationType operationType, String parentTypeName,
+                                 GraphQLFieldDefinition fieldDefinition, Argument argument,
+                                 SecurityContext securityContext) {
         if (argument == null || argument.getName() == null || argument.getValue() == null) {
             return;
         }
         accessRuleStorage.getArgumentRule(parentTypeName, fieldDefinition.getName(), argument.getName())
-                .ifPresent(rule -> checkRule(operationName, rule, securityContext, null));
+                .ifPresent(rule -> checkRule(operationType, rule, securityContext, null));
         GraphQLArgument argDef = fieldDefinition.getArgument(argument.getName());
         GraphQLType argType = argDef != null ? argDef.getType() : null;
         if (argType instanceof GraphQLNonNull) {
@@ -94,16 +138,21 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
     }
 
 
-    private void checkInput(GraphQLInput input, String operationName, SecurityContext ctx) {
+    private void checkInput(GraphQLInput input, OperationType operationType, SecurityContext ctx,
+                            SecurityInstrumentationState state) {
         if (input.getType() instanceof GraphQLInputObjectType && input.getValue() instanceof ObjectValue) {
             GraphQLInputObjectType type = (GraphQLInputObjectType) input.getType();
+            String typeName = type.getName();
             ObjectValue value = (ObjectValue) input.getValue();
-            accessRuleStorage.getInputObjectRule(type.getName())
-                    .ifPresent(rule -> checkRule(operationName, rule, ctx, null));
+            if (state.isNotCheckedInput(typeName)) {
+                accessRuleStorage.getInputObjectRule(typeName)
+                        .ifPresent(rule -> checkRule(operationType, rule, ctx, null));
+                state.checkedInputs.add(typeName);
+            }
             value.getObjectFields().stream()
                     .filter(objectField -> objectField.getName() != null && objectField.getValue() != null)
                     .peek(objectField -> accessRuleStorage.getInputFieldRule(type.getName(), objectField.getName())
-                            .ifPresent(rule -> checkRule(operationName, rule, ctx, null)))
+                            .ifPresent(rule -> checkRule(operationType, rule, ctx, null)))
                     .forEach(objectField -> {
                         GraphQLInputObjectField fieldDef = type.getField(objectField.getName());
                         GraphQLType fieldType = fieldDef != null ? fieldDef.getType() : null;
@@ -112,19 +161,25 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
                         }
                         if (fieldType instanceof GraphQLNamedInputType) {
                             checkInput(new GraphQLInput(objectField.getValue(), (GraphQLNamedInputType) fieldType),
-                                    operationName, ctx);
+                                    operationType, ctx, state);
                         }
                     });
         }
     }
 
-    private void checkRule(String operationName, TokenExpressionRule rule, SecurityContext ctx,
+    private void checkRule(OperationType operationType, TokenExpressionRule rule, SecurityContext ctx,
                            Map<String, String> arguments) {
-        boolean isRead = true;
-        if ("MUTATION".equals(operationName)) {
-            isRead = false;
+        TokenExpression expression;
+        switch (operationType) {
+            case READ:
+                expression = rule.getReadRule();
+                break;
+            case WRITE:
+                expression = rule.getWriteRule();
+                break;
+            default:
+                throw new AuthException("Undefined operation");
         }
-        TokenExpression expression = isRead ? rule.getReadRule() : rule.getWriteRule();
         try {
             if (!tokenExpressionSolver.solve(expression, ctx, arguments)) {
                 throw new AuthException(rule.getTargetInfo());
@@ -134,14 +189,17 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
         }
     }
 
-    private String retrieveOperationName(OperationDefinition operationDefinition) {
-        if (operationDefinition == null) {
-            return null;
+    private OperationType retrieveOperationType(OperationDefinition operationDefinition) {
+        if (operationDefinition == null || operationDefinition.getOperation() == null) {
+            throw new IllegalArgumentException("Undefined operation " + operationDefinition);
         }
-        if (operationDefinition.getOperation() == null) {
-            return null;
+        if ("MUTATION".equals(operationDefinition.getOperation().name())) {
+            return OperationType.WRITE;
+        } else if ("QUERY".equals(operationDefinition.getOperation().name()) ||
+                "SUBSCRIPTION".equals(operationDefinition.getOperation().name())) {
+            return OperationType.READ;
         }
-        return operationDefinition.getOperation().name();
+        throw new IllegalArgumentException("Undefined operation " + operationDefinition.getOperation().name());
     }
 
     private SecurityContext retrieveSecurityContext(Object context) {
@@ -200,6 +258,11 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
         }
     }
 
+    public enum OperationType {
+        READ,
+        WRITE
+    }
+
     private static class GraphQLInput {
         private final Value value;
         private final GraphQLNamedInputType type;
@@ -231,6 +294,27 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
         @Override
         public int hashCode() {
             return Objects.hash(typeName);
+        }
+    }
+
+    private static class SecurityInstrumentationState implements InstrumentationState {
+        private boolean hasErrors;
+        private Set<String> checkedInputs;
+        private Set<String> checkedObjects;
+        private OperationType operationType;
+        private SecurityContext securityContext;
+
+        SecurityInstrumentationState() {
+            this.checkedInputs = new HashSet<>();
+            this.checkedObjects = new HashSet<>();
+        }
+
+        boolean isNotCheckedInput(String input) {
+            return !checkedInputs.contains(input);
+        }
+
+        boolean isNotCheckedObject(String object) {
+            return !checkedObjects.contains(object);
         }
     }
 }
