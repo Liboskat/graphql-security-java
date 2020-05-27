@@ -13,6 +13,8 @@ import graphql.execution.instrumentation.parameters.InstrumentationExecuteOperat
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
 import graphql.language.*;
 import graphql.schema.*;
+import graphql.util.LogKit;
+import org.slf4j.Logger;
 import ru.liboskat.graphql.security.exceptions.AuthException;
 import ru.liboskat.graphql.security.storage.AccessRuleStorage;
 import ru.liboskat.graphql.security.storage.TokenExpression;
@@ -23,6 +25,8 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class SecurityInstrumentation extends SimpleInstrumentation {
+    private static final Logger logNotSafe = LogKit.getNotPrivacySafeLogger(SecurityInstrumentation.class);
+
     private final AccessRuleStorage accessRuleStorage;
     private final TokenExpressionSolver tokenExpressionSolver;
 
@@ -41,11 +45,14 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
         SecurityInstrumentationState state = parameters.getInstrumentationState();
         ExecutionContext execContext = parameters.getExecutionContext();
 
+        logNotSafe.debug("Started checking operation {}", execContext.getOperationDefinition());
+
         SecurityContext securityContext = retrieveSecurityContext(execContext.getContext());
         OperationType operationType;
         try {
             operationType = retrieveOperationType(execContext.getOperationDefinition());
         } catch (IllegalArgumentException e) {
+            logNotSafe.warn("Failed to retrieve operation type on {}", execContext.getOperationDefinition());
             execContext.addError(new AuthException(e.getMessage()));
             state.hasErrors = true;
             throw new AbortExecutionException(execContext.getErrors());
@@ -55,6 +62,7 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
             accessRuleStorage.getSchemaRule()
                     .ifPresent(rule -> checkRule(operationType, rule, securityContext, null));
         } catch (AuthException e) {
+            logNotSafe.warn("Access denied on {}", execContext.getOperationDefinition());
             execContext.addError(e);
             state.hasErrors = true;
             throw new AbortExecutionException(execContext.getErrors());
@@ -69,12 +77,14 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
     public ExecutionStrategyInstrumentationContext beginExecutionStrategy(InstrumentationExecutionStrategyParameters parameters) {
         ExecutionContext execContext = parameters.getExecutionContext();
         SecurityInstrumentationState state = parameters.getInstrumentationState();
+
         if (state.hasErrors) {
             throw new AbortExecutionException(execContext.getErrors());
         }
         try {
             checkAccess(parameters.getExecutionStrategyParameters(), state);
         } catch (AuthException e) {
+            logNotSafe.warn("Access denied on {}", execContext.getOperationDefinition());
             execContext.addError(e);
             state.hasErrors = true;
             throw new AbortExecutionException(execContext.getErrors());
@@ -219,7 +229,7 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
                     try {
                         securityContext = (SecurityContext) field.get(context);
                     } catch (IllegalAccessException e) {
-                        //toDo log
+                        logNotSafe.warn("Failed access to context field");
                     }
                     if (securityContext != null) {
                         return securityContext;

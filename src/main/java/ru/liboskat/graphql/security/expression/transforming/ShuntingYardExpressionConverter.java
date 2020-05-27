@@ -1,5 +1,7 @@
 package ru.liboskat.graphql.security.expression.transforming;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.liboskat.graphql.security.storage.ComparisonToken;
 import ru.liboskat.graphql.security.storage.OperatorToken;
 import ru.liboskat.graphql.security.storage.TokenExpression;
@@ -7,8 +9,11 @@ import ru.liboskat.graphql.security.storage.TokenExpression;
 import java.util.LinkedList;
 
 public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
+    private static final Logger logger = LoggerFactory.getLogger(ShuntingYardExpressionConverter.class);
+
     @Override
     public TokenExpression convertToRpn(TokenExpression tokenExpression) {
+        logger.debug("Converting expression {} to RPN started", tokenExpression);
         TokenExpression rpnExpression = new TokenExpression();
         LinkedList<OperatorToken> operatorStack = new LinkedList<>();
         tokenExpression.getTokens().forEach(token -> {
@@ -21,6 +26,7 @@ public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
         while (!operatorStack.isEmpty()) {
             rpnExpression.addToken(operatorStack.pop());
         }
+        logger.debug("Converting expression {} to RPN ended. Converted expression {}", tokenExpression, rpnExpression);
         return rpnExpression;
     }
 

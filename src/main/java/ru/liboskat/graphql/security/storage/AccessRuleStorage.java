@@ -4,6 +4,8 @@ import graphql.Scalars;
 import graphql.introspection.Introspection;
 import graphql.language.*;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.liboskat.graphql.security.exceptions.InvalidDirectiveException;
 import ru.liboskat.graphql.security.expression.parsing.ExpressionParser;
 import ru.liboskat.graphql.security.expression.parsing.SimpleExpressionParser;
@@ -12,6 +14,8 @@ import ru.liboskat.graphql.security.expression.transforming.*;
 import java.util.*;
 
 public class AccessRuleStorage {
+    private static final Logger logger = LoggerFactory.getLogger(AccessRuleStorage.class);
+
     public static final String AUTH_DIRECTIVE_NAME = "auth";
 
     private final TokenExpressionRule schemaRule;
@@ -381,19 +385,23 @@ public class AccessRuleStorage {
         }
 
         public AccessRuleStorage build() {
+            logger.debug("AccessRuleStorage building started");
             Map<ObjectInfo, TokenExpressionRule> objectRules = transformRuleMap(this.objectRules);
             Map<FieldInfo, TokenExpressionRule> fieldRules = transformRuleMap(this.fieldRules);
             Map<ArgumentInfo, TokenExpressionRule> argumentRules = transformRuleMap(this.argumentRules);
             Map<InputObjectInfo, TokenExpressionRule> inputObjectRules = transformRuleMap(this.inputObjectRules);
             Map<InputFieldInfo, TokenExpressionRule> inputFieldRules = transformRuleMap(this.inputFieldRules);
-            if (schemaRules != null && !schemaRules.isEmpty()) {
+            if (!schemaRules.isEmpty()) {
                 Optional<TokenExpressionRule> schemaRuleOptional =  transform(schemaRules, new SchemaInfo());
                 if (schemaRuleOptional.isPresent()) {
                     return new AccessRuleStorage(schemaRuleOptional.get(), objectRules, fieldRules, argumentRules,
                             inputObjectRules, inputFieldRules);
                 }
             }
-            return new AccessRuleStorage(objectRules, fieldRules, argumentRules, inputObjectRules, inputFieldRules);
+            AccessRuleStorage accessRuleStorage = new AccessRuleStorage(objectRules, fieldRules, argumentRules,
+                    inputObjectRules, inputFieldRules);
+            logger.debug("AccessRuleStorage building ended");
+            return accessRuleStorage;
         }
 
         private void checkAuthDirectiveDefinition(DirectiveDefinition directiveDefinition) {
@@ -434,7 +442,7 @@ public class AccessRuleStorage {
         }
 
         private void setRuleFromSchemaDefinition(SchemaDefinition schema) {
-            getFromDirectives(schema.getDirectives()).ifPresent(rule -> schemaRules.add(rule));
+            getFromDirectives(schema.getDirectives()).ifPresent(schemaRules::add);
         }
 
         private void setRulesFromType(TypeDefinition type) {
@@ -515,9 +523,11 @@ public class AccessRuleStorage {
         }
 
         private Optional<TokenExpressionRule> transform(List<StringExpressionRule> rules, RuleTargetInfo targetInfo) {
+            logger.debug("Started transforming rules {} of {}", rules, targetInfo);
             TokenExpressionRule.Builder builder = TokenExpressionRule.builder();
             builder.targetInfo(targetInfo);
             if (rules == null || rules.isEmpty()) {
+                logger.debug("Can't transform. Rules of {} is empty", targetInfo);
                 return Optional.empty();
             }
             List<TokenExpression> readRpnExpressions = new ArrayList<>();
@@ -551,10 +561,12 @@ public class AccessRuleStorage {
             if (!writeExpression.isEmpty()) {
                 writeExpression = expressionSimplifier.simplify(writeExpression);
             }
-            return Optional.of(builder
+            TokenExpressionRule tokenExpressionRule = builder
                     .readRule(readExpression)
                     .writeRule(writeExpression)
-                    .build());
+                    .build();
+            logger.debug("Ended transforming rules {} of {}. Result is {}", rules, targetInfo, tokenExpressionRule);
+            return Optional.of(tokenExpressionRule);
         }
     }
 }

@@ -1,20 +1,26 @@
 package ru.liboskat.graphql.security.expression.transforming;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.liboskat.graphql.security.exceptions.InternalErrorException;
 import ru.liboskat.graphql.security.storage.ComparisonToken;
 import ru.liboskat.graphql.security.storage.OperatorToken;
-import ru.liboskat.graphql.security.storage.TokenExpression;
 import ru.liboskat.graphql.security.storage.Token;
+import ru.liboskat.graphql.security.storage.TokenExpression;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier {
+    private static final Logger logger = LoggerFactory.getLogger(QuineMcCluskeyExpressionSimplifier.class);
+
     private static final int MAX_VARIABLE_COUNT = 10;
 
     @Override
     public TokenExpression simplify(TokenExpression expression) {
+        logger.debug("Simplification of expression {} started", expression);
+
         List<ComparisonToken> variables = expression.getTokens().stream()
                 .filter(token -> token instanceof ComparisonToken)
                 .map(token -> (ComparisonToken) token)
@@ -22,6 +28,7 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (variables.size() > MAX_VARIABLE_COUNT) {
+            logger.debug("Expression {} can't be simplified, number of variables is more than 10", expression);
             return expression;
         }
 
@@ -33,7 +40,10 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
             step = nextStep(step, notMatchableMinTermMatches, variables.size());
         }
 
-        return buildRpnExpression(getEssentialTerms(minTerms.size(), notMatchableMinTermMatches), variables);
+        TokenExpression rpnExpression = buildRpnExpression(
+                getEssentialTerms(minTerms.size(), notMatchableMinTermMatches), variables);
+        logger.debug("Simplification of expression {} ended. Simplified expression {}", expression, rpnExpression);
+        return rpnExpression;
     }
 
     private List<boolean[]> getMinTerms(TokenExpression expression,

@@ -21,6 +21,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SimpleExpressionParser implements ExpressionParser {
+    private static final Logger logger = LoggerFactory.getLogger(SimpleExpressionParser.class);
+
     private static final int STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION = 0;
     private static final int STATE_WAITING_OPENING_BRACKET = 1;
     private static final int STATE_WAITING_COMPARISON_OPERATOR = 2;
@@ -35,8 +37,6 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     private static final String IN_OPERATOR = "IN";
     private static final String NOT_IN_OPERATOR = "NOT IN";
-
-    private static final Logger logger = LoggerFactory.getLogger(SimpleExpressionParser.class);
 
     private final ThreadLocal<Integer> startPosition;
 
@@ -240,6 +240,8 @@ public class SimpleExpressionParser implements ExpressionParser {
             throw new InvalidExpressionException(
                     String.format("%d parens is unclosed", leftParenCount - rightParenCount), expression);
         }
+
+        logger.debug("Ended parsing expression {}", expression);
         return tokenExpression;
     }
 
