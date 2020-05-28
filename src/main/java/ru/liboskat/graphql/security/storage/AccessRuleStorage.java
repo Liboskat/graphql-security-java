@@ -6,13 +6,16 @@ import graphql.language.*;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.liboskat.graphql.security.exceptions.InvalidDirectiveException;
+import ru.liboskat.graphql.security.exceptions.InvalidAuthDirectiveException;
 import ru.liboskat.graphql.security.expression.parsing.ExpressionParser;
 import ru.liboskat.graphql.security.expression.parsing.SimpleExpressionParser;
 import ru.liboskat.graphql.security.expression.transforming.*;
 
 import java.util.*;
 
+/**
+ * This class is used to store rules of schema, objects, fields, arguments, input objects, input fields
+ */
 public class AccessRuleStorage {
     private static final Logger logger = LoggerFactory.getLogger(AccessRuleStorage.class);
 
@@ -70,13 +73,22 @@ public class AccessRuleStorage {
         return Optional.ofNullable(inputFieldRules.get(new InputFieldInfo(inputObjectName, inputFieldName)));
     }
 
+    /**
+     * @return new {@link Builder} instance
+     */
     public static AccessRuleStorage.Builder newAccessRuleStorage() {
         return new Builder();
     }
 
+    /**
+     * Interface marking that class is information about rule target
+     */
     public interface RuleTargetInfo {
     }
 
+    /**
+     * Class that shows that target is schema
+     */
     public static class SchemaInfo implements RuleTargetInfo {
         @Override
         public String toString() {
@@ -84,6 +96,9 @@ public class AccessRuleStorage {
         }
     }
 
+    /**
+     * Class with information about object
+     */
     public static class ObjectInfo implements RuleTargetInfo {
         private String name;
 
@@ -119,6 +134,9 @@ public class AccessRuleStorage {
         }
     }
 
+    /**
+     * Class with information about field
+     */
     public static class FieldInfo implements RuleTargetInfo {
         private String typeName;
         private String fieldName;
@@ -161,6 +179,9 @@ public class AccessRuleStorage {
         }
     }
 
+    /**
+     * Class with information about argument
+     */
     public static class ArgumentInfo implements RuleTargetInfo {
         private String typeName;
         private String fieldName;
@@ -212,6 +233,9 @@ public class AccessRuleStorage {
         }
     }
 
+    /**
+     * Class with information about input object
+     */
     public static class InputObjectInfo implements RuleTargetInfo {
         private String name;
 
@@ -247,6 +271,9 @@ public class AccessRuleStorage {
         }
     }
 
+    /**
+     * Class with information about input object field
+     */
     public static class InputFieldInfo implements RuleTargetInfo {
         private String inputTypeName;
         private String fieldName;
@@ -289,6 +316,9 @@ public class AccessRuleStorage {
         }
     }
 
+    /**
+     * This class is used to construct {@link AccessRuleStorage}
+     */
     public static class Builder {
         private static final List<String> DIRECTIVE_INPUT_VALUE_NAMES = Arrays.asList("rw", "r", "w");
         private static final List<String> DIRECTIVE_LOCATIONS = Arrays.asList(
@@ -328,36 +358,81 @@ public class AccessRuleStorage {
             this.inputFieldRules = new HashMap<>();
         }
 
+        /**
+         * Adds schema rule
+         * @param rule rules in string format
+         * @return this builder
+         * @throws IllegalArgumentException if rule is null or empty
+         */
         public Builder schemaRule(StringExpressionRule rule) {
             throwExceptionIfNullOrEmpty(rule);
             schemaRules.add(rule);
             return this;
         }
 
+        /**
+         * Adds object rule
+         * @param rule rules in string format
+         * @param objectName name of object
+         * @return this builder
+         * @throws IllegalArgumentException if rule or objectName is null or empty
+         */
         public Builder objectRule(StringExpressionRule rule, String objectName) {
             throwExceptionIfNullOrEmpty(rule);
             addRuleToMap(objectRules, new ObjectInfo(objectName), rule);
             return this;
         }
 
+        /**
+         * Adds object field rule
+         * @param rule rules in string format
+         * @param typeName name of parent object
+         * @param fieldName name of field
+         * @return this builder
+         * @throws IllegalArgumentException if rule or typeName or fieldName is null or empty
+         */
         public Builder fieldRule(StringExpressionRule rule, String typeName, String fieldName) {
             throwExceptionIfNullOrEmpty(rule);
             addRuleToMap(fieldRules, new FieldInfo(typeName, fieldName), rule);
             return this;
         }
 
+        /**
+         * Add field argument rule
+         * @param rule rules in string format
+         * @param typeName name of parent object
+         * @param fieldName name of field
+         * @param argumentName name of argument
+         * @return this builder
+         * @throws IllegalArgumentException if rule or typeName or fieldName or argumentName is null or empty
+         */
         public Builder argumentRule(StringExpressionRule rule, String typeName, String fieldName, String argumentName) {
             throwExceptionIfNullOrEmpty(rule);
             addRuleToMap(argumentRules, new ArgumentInfo(typeName, fieldName, argumentName), rule);
             return this;
         }
 
+        /**
+         * Adds input object rule
+         * @param rule rules in string format
+         * @param inputObjectName name of input object
+         * @return this builder
+         * @throws IllegalArgumentException if rule or inputObjectName is null or empty
+         */
         public Builder inputObjectRule(StringExpressionRule rule, String inputObjectName) {
             throwExceptionIfNullOrEmpty(rule);
             addRuleToMap(inputObjectRules, new InputObjectInfo(inputObjectName), rule);
             return this;
         }
 
+        /**
+         * Adds object field rule
+         * @param rule rules in string format
+         * @param inputTypeName name of parent input object
+         * @param fieldName name of field
+         * @return this builder
+         * @throws IllegalArgumentException if rule or inputTypeName or fieldName is null or empty
+         */
         public Builder inputFieldRule(StringExpressionRule rule, String inputTypeName, String fieldName) {
             throwExceptionIfNullOrEmpty(rule);
             addRuleToMap(inputFieldRules, new InputFieldInfo(inputTypeName, fieldName), rule);
@@ -370,6 +445,12 @@ public class AccessRuleStorage {
             }
         }
 
+        /**
+         * Adds all rules from {@link TypeDefinitionRegistry} of GraphQL Schema
+         * @param registry {@link TypeDefinitionRegistry} of GraphQL Schema
+         * @return this builder
+         * @throws InvalidAuthDirectiveException if declared @auth directive is incorrect
+         */
         public Builder fromTypeDefinitionRegistry(TypeDefinitionRegistry registry) {
             Optional<DirectiveDefinition> authDirectiveOptional = registry.getDirectiveDefinition(AUTH_DIRECTIVE_NAME);
             authDirectiveOptional.ifPresent(authDirective -> {
@@ -384,6 +465,9 @@ public class AccessRuleStorage {
             return this;
         }
 
+        /**
+         * @return constructed {@link AccessRuleStorage}
+         */
         public AccessRuleStorage build() {
             logger.debug("AccessRuleStorage building started");
             Map<ObjectInfo, TokenExpressionRule> objectRules = transformRuleMap(this.objectRules);
@@ -421,7 +505,7 @@ public class AccessRuleStorage {
                             .map(DirectiveLocation::getName)
                             .allMatch(DIRECTIVE_LOCATIONS::contains);
             if (!correct) {
-                throw new InvalidDirectiveException();
+                throw new InvalidAuthDirectiveException();
             }
         }
 

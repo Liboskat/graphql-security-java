@@ -13,15 +13,30 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
+/**
+ * An implementation of {@link TokenExpressionSolver} that is used to solve {@link TokenExpression}
+ * in Reversed Polish Notation.
+ */
 public class TokenExpressionSolverImpl implements TokenExpressionSolver {
     private final TemporalComparator temporalComparator;
     private final NumberComparator numberComparator;
 
+    /**
+     * Creates new solver
+     */
     public TokenExpressionSolverImpl() {
         this.temporalComparator = new TemporalComparator();
         this.numberComparator = new NumberComparator();
     }
 
+    /**
+     * Solves {@link TokenExpression} in Reversed Polish Notation
+     * @param expression expression in Reversed Polish Notation
+     * @param context security context of query
+     * @param arguments arguments of queried field. May be null
+     * @return result of solving the expression
+     * @throws IllegalArgumentException if expression is incorrect
+     */
     @Override
     public boolean solve(TokenExpression expression, SecurityContext context, Map<String, String> arguments) {
         LinkedList<Boolean> stack = new LinkedList<>();

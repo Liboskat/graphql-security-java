@@ -8,9 +8,20 @@ import ru.liboskat.graphql.security.storage.TokenExpression;
 
 import java.util.LinkedList;
 
+/**
+ * An implementation of {@link RpnExpressionConverter} that is used to convert {@link TokenExpression} in infix notation
+ * to Reverse Polish Notation using Shunting Yard algorithm
+ */
 public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
     private static final Logger logger = LoggerFactory.getLogger(ShuntingYardExpressionConverter.class);
 
+    /**
+     * Converts {@link TokenExpression} in infix notation to Reverse Polish Notation using
+     * Shunting Yard algorithm
+     * @param tokenExpression {@link TokenExpression} in infix notation
+     * @return {@link TokenExpression} in RPN
+     * @throws IllegalArgumentException if number of right parens more than number of left
+     */
     @Override
     public TokenExpression convertToRpn(TokenExpression tokenExpression) {
         logger.debug("Converting expression {} to RPN started", tokenExpression);

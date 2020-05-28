@@ -6,6 +6,9 @@ import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Implementation of {@link Comparator} that compares Java number wrappers
+ */
 public class NumberComparator implements Comparator<Number> {
     @Override
     public int compare(Number o1, Number o2) {

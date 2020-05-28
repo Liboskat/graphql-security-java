@@ -24,6 +24,9 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.Map.Entry;
 
+/**
+ * An implementation of {@link graphql.execution.instrumentation.Instrumentation} that do access control checks of queries
+ */
 public class SecurityInstrumentation extends SimpleInstrumentation {
     private static final Logger logNotSafe = LogKit.getNotPrivacySafeLogger(SecurityInstrumentation.class);
 
@@ -35,11 +38,21 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
         this.tokenExpressionSolver = new TokenExpressionSolverImpl();
     }
 
+    /**
+     * Creates new state for all instrumentation methods when execution starts.
+     * @return new {@link SecurityInstrumentationState}
+     */
     @Override
     public InstrumentationState createState() {
         return new SecurityInstrumentationState();
     }
 
+    /**
+     * Is called before executing query.
+     * It retrieves {@link SecurityContext} and {@link OperationType} and puts it to {@link SecurityInstrumentationState}.
+     * Also this method checks access to schema.
+     * @throws AbortExecutionException if access is denied or operation is invalid
+     */
     @Override
     public InstrumentationContext<ExecutionResult> beginExecuteOperation(InstrumentationExecuteOperationParameters parameters) {
         SecurityInstrumentationState state = parameters.getInstrumentationState();
@@ -73,6 +86,11 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
         return super.beginExecuteOperation(parameters);
     }
 
+    /**
+     * Is called before executing field query. It checks access to field, field type (if type is Object),
+     * arguments and types of arguments.
+     * @throws AbortExecutionException if access is denied
+     */
     @Override
     public ExecutionStrategyInstrumentationContext beginExecutionStrategy(InstrumentationExecutionStrategyParameters parameters) {
         ExecutionContext execContext = parameters.getExecutionContext();
@@ -240,26 +258,42 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
         return null;
     }
 
+    /**
+     * @return {@link Builder} for this class
+     */
     public static SecurityInstrumentation.Builder newSecurityInstrumentation() {
         return new Builder();
     }
 
+    /**
+     * @return {@link Builder} for this class with already set {@link AccessRuleStorage}
+     */
     public static SecurityInstrumentation.Builder newSecurityInstrumentation(AccessRuleStorage accessRuleStorage) {
         return new Builder().accessRuleStorage(accessRuleStorage);
     }
 
-
+    /**
+     * Class used to construct {@link SecurityInstrumentation}
+     */
     public static class Builder {
         private AccessRuleStorage accessRuleStorage;
 
         private Builder() {
         }
 
+        /**
+         * Sets {@link AccessRuleStorage}
+         * @param accessRuleStorage {@link AccessRuleStorage} with rules that can be used in checks during each execution
+         * @return this builder
+         */
         public Builder accessRuleStorage(AccessRuleStorage accessRuleStorage) {
             this.accessRuleStorage = accessRuleStorage;
             return this;
         }
 
+        /**
+         * @return built {@link SecurityInstrumentation}
+         */
         public SecurityInstrumentation build() {
             if (accessRuleStorage == null) {
                 throw new IllegalArgumentException("AccessRuleStorage can't be null");
@@ -268,6 +302,9 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
         }
     }
 
+    /**
+     * Enum used to specify which operation type query have
+     */
     public enum OperationType {
         READ,
         WRITE
@@ -309,8 +346,8 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
 
     private static class SecurityInstrumentationState implements InstrumentationState {
         private boolean hasErrors;
-        private Set<String> checkedInputs;
-        private Set<String> checkedObjects;
+        private final Set<String> checkedInputs;
+        private final Set<String> checkedObjects;
         private OperationType operationType;
         private SecurityContext securityContext;
 

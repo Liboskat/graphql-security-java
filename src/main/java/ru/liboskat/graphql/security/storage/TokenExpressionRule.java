@@ -1,5 +1,8 @@
 package ru.liboskat.graphql.security.storage;
 
+/**
+ * Class used to store and transfer rules in {@link TokenExpression} form with information about rule target
+ */
 public class TokenExpressionRule {
     private final TokenExpression readRule;
     private final TokenExpression writeRule;
@@ -11,14 +14,23 @@ public class TokenExpressionRule {
         this.targetInfo = targetInfo;
     }
 
+    /**
+     * @return combined read rules and read-write rules
+     */
     public TokenExpression getReadRule() {
         return readRule;
     }
 
+    /**
+     * @return combined write rules and read-write rules
+     */
     public TokenExpression getWriteRule() {
         return writeRule;
     }
 
+    /**
+     * @return information about target of rule
+     */
     public AccessRuleStorage.RuleTargetInfo getTargetInfo() {
         return targetInfo;
     }

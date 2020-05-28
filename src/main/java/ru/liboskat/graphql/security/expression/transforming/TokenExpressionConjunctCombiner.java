@@ -7,7 +7,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * An implementation of {@link TokenExpressionCombiner} that is used to conjunct expressions in Reversed Polish Notation
+ */
 public class TokenExpressionConjunctCombiner implements TokenExpressionCombiner {
+    /**
+     * @param tokenExpressions some expressions in Reversed Polish Notation
+     * @return conjunction of expressions
+     */
     @Override
     public TokenExpression combine(List<TokenExpression> tokenExpressions) {
         TokenExpression result = new TokenExpression();

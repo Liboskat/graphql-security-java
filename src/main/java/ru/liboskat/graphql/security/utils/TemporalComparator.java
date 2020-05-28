@@ -7,6 +7,10 @@ import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import java.util.Comparator;
 
+/**
+ * Implementation of {@link Comparator} that compares {@link LocalDate}, {@link LocalTime}, {@link LocalDateTime},
+ * {@link ZonedDateTime}
+ */
 public class TemporalComparator implements Comparator<Temporal> {
     @Override
     public int compare(Temporal first, Temporal second) {

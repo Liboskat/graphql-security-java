@@ -2,6 +2,9 @@ package ru.liboskat.graphql.security.storage;
 
 import java.util.Objects;
 
+/**
+ * An implementation of {@link Token} that is used to store information about comparison
+ */
 public class ComparisonToken implements Token {
     private final Object firstValue;
     private final Object secondValue;
@@ -38,6 +41,21 @@ public class ComparisonToken implements Token {
         return comparisonType;
     }
 
+    /**
+     * Compares ComparisonToken objects correctly
+     * Let be 'a' - first object and 'b' - second object, '1' - first value and type, '2' - second value and type
+     * For example a2 is first object second value and type
+     * '<' is opposite to '>' and '<=' is opposite to '=>'
+     * Then objects is equal if:
+     * 1. if objects comparison type = '=':
+     *        a1=b1 & a2=b2 | a1=b2 & a2=b1
+     * 2. if first object type != '=' and second object type is same:
+     *        a1=b1 & a2=b2
+     * 2. if first object type != '=' and second object type is opposite:
+     *        a1=b2 & a2=b1
+     * @param o other object
+     * @return result of comparison
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -87,10 +105,16 @@ public class ComparisonToken implements Token {
                 Objects.hash(secondValue, firstValue, secondValueType, firstValueType, comparisonType) / 2;
     }
 
+    /**
+     * @return {@link Builder} for this class
+     */
     public static ComparisonToken.Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Type of comparison operand value
+     */
     public enum ValueType {
         GRAPHQL_CONTEXT_FIELD_NAME,
         GRAPHQL_ARGUMENT_NAME,
@@ -106,6 +130,9 @@ public class ComparisonToken implements Token {
         LOCAL_TIME
     }
 
+    /**
+     * Type of operand comparison
+     */
     public enum ComparisonType {
         EQUALS("="),
         LT("<"),
@@ -124,10 +151,16 @@ public class ComparisonToken implements Token {
         }
     }
 
+    /**
+     * Used to indicate that value is null
+     */
     public enum NullValue {
         INSTANCE
     }
 
+    /**
+     * Class that is used to construct new {@link ComparisonToken}
+     */
     public static class Builder {
         private Object firstValue;
         private Object secondValue;
@@ -135,6 +168,13 @@ public class ComparisonToken implements Token {
         private ValueType secondValueType;
         private ComparisonType comparisonType;
 
+        /**
+         * Sets first operand value and type
+         * @param value first operand value
+         * @param valueType first operand type
+         * @return this builder
+         * @throws IllegalArgumentException if value or type is null
+         */
         public Builder firstValue(Object value, ValueType valueType) {
             throwIfNullValueOrType(value);
             throwIfNullValueOrType(valueType);
@@ -143,18 +183,37 @@ public class ComparisonToken implements Token {
             return this;
         }
 
+        /**
+         * Sets operand first value
+         * @param value first operand value
+         * @return this builder
+         * @throws IllegalArgumentException if value is null
+         */
         public Builder firstValue(Object value) {
             throwIfNullValueOrType(value);
             this.firstValue = value;
             return this;
         }
 
+        /**
+         * Sets operand first type
+         * @param valueType first operand type
+         * @return this builder
+         * @throws IllegalArgumentException if type is null
+         */
         public Builder firstValueType(ValueType valueType) {
             throwIfNullValueOrType(valueType);
             this.firstValueType = valueType;
             return this;
         }
 
+        /**
+         * Sets second operand value and type
+         * @param value second operand value
+         * @param valueType second operand type
+         * @return this builder
+         * @throws IllegalArgumentException if value or type is null
+         */
         public Builder secondValue(Object value, ValueType valueType) {
             throwIfNullValueOrType(value);
             throwIfNullValueOrType(valueType);
@@ -163,18 +222,36 @@ public class ComparisonToken implements Token {
             return this;
         }
 
+        /**
+         * Sets second operand value
+         * @param value second operand value
+         * @return this builder
+         * @throws IllegalArgumentException if value is null
+         */
         public Builder secondValue(Object value) {
             throwIfNullValueOrType(value);
             this.secondValue = value;
             return this;
         }
 
+        /**
+         * Sets second operand value and type
+         * @param valueType second operand type
+         * @return this builder
+         * @throws IllegalArgumentException if type is null
+         */
         public Builder secondValueType(ValueType valueType) {
             throwIfNullValueOrType(valueType);
             this.secondValueType = valueType;
             return this;
         }
 
+        /**
+         * Sets comparison type
+         * @param comparisonType comparison type
+         * @return this builder
+         * @throws IllegalArgumentException if type is null
+         */
         public Builder comparisonType(ComparisonType comparisonType) {
             throwIfNullValueOrType(comparisonType);
             this.comparisonType = comparisonType;
@@ -187,6 +264,11 @@ public class ComparisonToken implements Token {
             }
         }
 
+        /**
+         * @return constructed {@link ComparisonToken}
+         * @throws IllegalArgumentException if some values or types is null or types can't be compared
+         * or type can't be compared using comparison type
+         */
         public ComparisonToken build() {
             if (firstValue == null || firstValueType == null || secondValue == null || secondValueType == null) {
                 throw new IllegalArgumentException("Values and types can't be null");

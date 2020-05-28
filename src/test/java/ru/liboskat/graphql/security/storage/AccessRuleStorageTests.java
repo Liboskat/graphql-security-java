@@ -8,7 +8,7 @@ import graphql.language.TypeName;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import org.junit.jupiter.api.Test;
-import ru.liboskat.graphql.security.exceptions.InvalidDirectiveException;
+import ru.liboskat.graphql.security.exceptions.InvalidAuthDirectiveException;
 import ru.liboskat.graphql.security.storage.AccessRuleStorage.*;
 import ru.liboskat.graphql.security.storage.ComparisonToken.ComparisonType;
 import ru.liboskat.graphql.security.storage.ComparisonToken.ValueType;
@@ -292,7 +292,7 @@ class AccessRuleStorageTests {
 
     @Test
     void add_fromTypeDefinitionRegistry_withoutIncorrectDirectiveArgs_shouldThrowException() {
-        assertThrows(InvalidDirectiveException.class, () ->
+        assertThrows(InvalidAuthDirectiveException.class, () ->
                 AccessRuleStorage.newAccessRuleStorage()
                         .fromTypeDefinitionRegistry(loadSchema("schema_with_incorrect_directive_args.graphqls"))
                         .build());
@@ -300,7 +300,7 @@ class AccessRuleStorageTests {
 
     @Test
     void add_fromTypeDefinitionRegistry_withoutIncorrectDirectiveLocations_shouldThrowException() {
-        assertThrows(InvalidDirectiveException.class, () ->
+        assertThrows(InvalidAuthDirectiveException.class, () ->
                 AccessRuleStorage.newAccessRuleStorage()
                         .fromTypeDefinitionRegistry(loadSchema("schema_with_incorrect_directive_locations.graphqls"))
                         .build());

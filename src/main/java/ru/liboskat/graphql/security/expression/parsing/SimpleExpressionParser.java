@@ -20,6 +20,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * An implementation of {@link ExpressionParser} that is used to parse String access control expressions
+ */
 public class SimpleExpressionParser implements ExpressionParser {
     private static final Logger logger = LoggerFactory.getLogger(SimpleExpressionParser.class);
 
@@ -40,10 +43,19 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     private final ThreadLocal<Integer> startPosition;
 
+    /**
+     * Creates new parser
+     */
     public SimpleExpressionParser() {
         startPosition = ThreadLocal.withInitial(() -> 0);
     }
 
+    /**
+     * Parses String access control expression
+     * @param expression String access control expression
+     * @return {@link TokenExpression} in infix notation
+     * @throws InvalidExpressionException if expression is invalid
+     */
     @Override
     public TokenExpression parse(String expression) {
         logger.debug("Started parsing expression {}", expression);
