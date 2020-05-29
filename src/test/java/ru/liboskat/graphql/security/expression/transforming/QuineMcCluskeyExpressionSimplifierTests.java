@@ -3,11 +3,10 @@ package ru.liboskat.graphql.security.expression.transforming;
 import org.junit.jupiter.api.Test;
 import ru.liboskat.graphql.security.execution.TokenExpressionSolver;
 import ru.liboskat.graphql.security.execution.TokenExpressionSolverImpl;
-import ru.liboskat.graphql.security.expression.transforming.ExpressionSimplifier;
-import ru.liboskat.graphql.security.expression.transforming.QuineMcCluskeyExpressionSimplifier;
-import ru.liboskat.graphql.security.storage.ComparisonToken;
-import ru.liboskat.graphql.security.storage.ComparisonToken.ValueType;
-import ru.liboskat.graphql.security.storage.OperatorToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ComparisonType;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ValueType;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
 import ru.liboskat.graphql.security.storage.TokenExpression;
 
 import java.util.ArrayList;
@@ -83,6 +82,7 @@ class QuineMcCluskeyExpressionSimplifierTests {
         expression.addToken(ComparisonToken.builder()
                 .firstValue(value, ValueType.GRAPHQL_ARGUMENT_NAME)
                 .secondValue(value, ValueType.STRING)
+                .comparisonType(ComparisonType.EQUALS)
                 .build());
     }
 }

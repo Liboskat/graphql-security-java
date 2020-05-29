@@ -1,16 +1,14 @@
 package ru.liboskat.graphql.security.expression.transforming;
 
 import org.junit.jupiter.api.Test;
-import ru.liboskat.graphql.security.expression.transforming.RpnExpressionConverter;
-import ru.liboskat.graphql.security.expression.transforming.ShuntingYardExpressionConverter;
-import ru.liboskat.graphql.security.storage.ComparisonToken;
-import ru.liboskat.graphql.security.storage.ComparisonToken.ComparisonType;
-import ru.liboskat.graphql.security.storage.OperatorToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ComparisonType;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
 import ru.liboskat.graphql.security.storage.TokenExpression;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static ru.liboskat.graphql.security.storage.ComparisonToken.ValueType;
+import static ru.liboskat.graphql.security.storage.token.ComparisonToken.ValueType;
 
 class ShuntingYardExpressionConverterTests {
     private final RpnExpressionConverter converter = new ShuntingYardExpressionConverter();

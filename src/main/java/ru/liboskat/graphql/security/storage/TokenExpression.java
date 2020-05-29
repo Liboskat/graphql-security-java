@@ -1,6 +1,8 @@
 package ru.liboskat.graphql.security.storage;
 
-import java.util.LinkedList;
+import ru.liboskat.graphql.security.storage.token.Token;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -15,7 +17,7 @@ public class TokenExpression {
      * Creates empty expression
      */
     public TokenExpression() {
-        this.tokens = new LinkedList<>();
+        this.tokens = new ArrayList<>();
     }
 
     /**

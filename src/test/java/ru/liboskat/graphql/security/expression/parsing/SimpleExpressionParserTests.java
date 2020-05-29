@@ -2,11 +2,11 @@ package ru.liboskat.graphql.security.expression.parsing;
 
 import org.junit.jupiter.api.Test;
 import ru.liboskat.graphql.security.exceptions.InvalidExpressionException;
-import ru.liboskat.graphql.security.storage.ComparisonToken;
-import ru.liboskat.graphql.security.storage.ComparisonToken.ComparisonType;
-import ru.liboskat.graphql.security.storage.ComparisonToken.NullValue;
-import ru.liboskat.graphql.security.storage.ComparisonToken.ValueType;
-import ru.liboskat.graphql.security.storage.OperatorToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ComparisonType;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.NullValue;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ValueType;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
 import ru.liboskat.graphql.security.storage.TokenExpression;
 
 import java.time.LocalDate;
@@ -52,7 +52,7 @@ class SimpleExpressionParserTests {
         TokenExpression correct = new TokenExpression();
         correct.addToken(ComparisonToken.builder()
                 .firstValue("a", ValueType.GRAPHQL_CONTEXT_FIELD_NAME)
-                .secondValue(1.2, ValueType.DOUBLE)
+                .secondValue(1.2, ValueType.REAL)
                 .comparisonType(ComparisonType.EQUALS)
                 .build()
         );
@@ -155,7 +155,7 @@ class SimpleExpressionParserTests {
         String expression = "{5000000000} = $a";
         TokenExpression correct = new TokenExpression();
         correct.addToken(ComparisonToken.builder()
-                .firstValue(5000000000L, ValueType.LONG)
+                .firstValue(5000000000L, ValueType.INTEGER)
                 .secondValue("a", ValueType.GRAPHQL_ARGUMENT_NAME)
                 .comparisonType(ComparisonType.EQUALS)
                 .build()

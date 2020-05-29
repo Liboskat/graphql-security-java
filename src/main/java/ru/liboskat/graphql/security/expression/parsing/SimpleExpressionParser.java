@@ -4,10 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.liboskat.graphql.security.exceptions.InternalErrorException;
 import ru.liboskat.graphql.security.exceptions.InvalidExpressionException;
-import ru.liboskat.graphql.security.storage.ComparisonToken;
-import ru.liboskat.graphql.security.storage.OperatorToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ComparisonType;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
 import ru.liboskat.graphql.security.storage.TokenExpression;
-import ru.liboskat.graphql.security.storage.Token;
+import ru.liboskat.graphql.security.storage.token.Token;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -63,7 +64,7 @@ public class SimpleExpressionParser implements ExpressionParser {
         int state = STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION;
         Object firstValue = null;
         ComparisonToken.ValueType firstValueType = null;
-        ComparisonToken.ComparisonType comparisonType = null;
+        ComparisonType comparisonType = null;
         TokenExpression tokenExpression = new TokenExpression();
         int leftParenCount = 0;
         int rightParenCount = 0;
@@ -123,13 +124,13 @@ public class SimpleExpressionParser implements ExpressionParser {
                 if (symbol == '!') {
                     state = STATE_READING_NOT_EQUALS;
                 } else if (symbol == '=') {
-                    comparisonType = ComparisonToken.ComparisonType.EQUALS;
+                    comparisonType = ComparisonType.EQUALS;
                     state = STATE_WAITING_SECOND_OPERAND;
                 } else if (symbol == '<') {
-                    comparisonType = ComparisonToken.ComparisonType.LT;
+                    comparisonType = ComparisonType.LT;
                     state = STATE_READING_LTE_OR_GTE;
                 } else if (symbol == '>') {
-                    comparisonType = ComparisonToken.ComparisonType.GT;
+                    comparisonType = ComparisonType.GT;
                     state = STATE_READING_LTE_OR_GTE;
                 } else if (symbol == 'N' || symbol == 'n') {
                     startPosition.set(i);
@@ -149,16 +150,16 @@ public class SimpleExpressionParser implements ExpressionParser {
             } else if (state == STATE_READING_NOT_EQUALS) {
                 if (symbol == '=') {
                     tokenExpression.addToken(OperatorToken.NOT);
-                    comparisonType = ComparisonToken.ComparisonType.EQUALS;
+                    comparisonType = ComparisonType.EQUALS;
                     state = STATE_WAITING_SECOND_OPERAND;
                 } else {
                     throw new InvalidExpressionException(symbol, i, "'='", expression);
                 }
             } else if (state == STATE_READING_LTE_OR_GTE) {
-                if (symbol == '=' && comparisonType == ComparisonToken.ComparisonType.LT) {
-                    comparisonType = ComparisonToken.ComparisonType.LTE;
-                } else if (symbol == '=' && comparisonType == ComparisonToken.ComparisonType.GT) {
-                    comparisonType = ComparisonToken.ComparisonType.GTE;
+                if (symbol == '=' && comparisonType == ComparisonType.LT) {
+                    comparisonType = ComparisonType.LTE;
+                } else if (symbol == '=' && comparisonType == ComparisonType.GT) {
+                    comparisonType = ComparisonType.GTE;
                 } else {
                     startPosition.set(i);
                     getIFromStartPosition = true;
@@ -433,6 +434,7 @@ public class SimpleExpressionParser implements ExpressionParser {
                 .map(inValue -> ComparisonToken.builder()
                         .firstValue(firstValue, firstValueType)
                         .secondValue(inValue, ComparisonToken.ValueType.STRING)
+                        .comparisonType(ComparisonType.EQUALS)
                         .build())
                 .collect(Collectors.toList());
         boolean addParentheses = equalityTokens.size() > 1;
@@ -493,16 +495,12 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     private Optional<ValueAndTypeHolder> tryGetNumber(String value) {
         try {
-            return Optional.of(Integer.parseInt(value))
-                    .map(intValue -> new ValueAndTypeHolder(intValue, ComparisonToken.ValueType.INTEGER));
-        } catch (NumberFormatException ignored) { }
-        try {
             return Optional.of(Long.parseLong(value))
-                    .map(longValue -> new ValueAndTypeHolder(longValue, ComparisonToken.ValueType.LONG));
+                    .map(longValue -> new ValueAndTypeHolder(longValue, ComparisonToken.ValueType.INTEGER));
         } catch (NumberFormatException ignored) { }
         try {
             return Optional.of(Double.parseDouble(value))
-                    .map(doubleValue -> new ValueAndTypeHolder(doubleValue, ComparisonToken.ValueType.DOUBLE));
+                    .map(doubleValue -> new ValueAndTypeHolder(doubleValue, ComparisonToken.ValueType.REAL));
         } catch (NumberFormatException ignored) { }
         return Optional.empty();
     }

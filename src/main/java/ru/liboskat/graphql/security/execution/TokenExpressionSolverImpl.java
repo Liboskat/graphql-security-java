@@ -1,12 +1,13 @@
 package ru.liboskat.graphql.security.execution;
 
-import ru.liboskat.graphql.security.storage.ComparisonToken;
-import ru.liboskat.graphql.security.storage.OperatorToken;
-import ru.liboskat.graphql.security.storage.Token;
 import ru.liboskat.graphql.security.storage.TokenExpression;
-import ru.liboskat.graphql.security.utils.NumberComparator;
-import ru.liboskat.graphql.security.utils.TemporalComparator;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ComparisonType;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
+import ru.liboskat.graphql.security.storage.token.Token;
+import ru.liboskat.graphql.security.utils.TemporalToZonedDateTimeConverter;
 
+import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import java.util.LinkedList;
 import java.util.Map;
@@ -18,22 +19,12 @@ import java.util.Objects;
  * in Reversed Polish Notation.
  */
 public class TokenExpressionSolverImpl implements TokenExpressionSolver {
-    private final TemporalComparator temporalComparator;
-    private final NumberComparator numberComparator;
-
-    /**
-     * Creates new solver
-     */
-    public TokenExpressionSolverImpl() {
-        this.temporalComparator = new TemporalComparator();
-        this.numberComparator = new NumberComparator();
-    }
-
     /**
      * Solves {@link TokenExpression} in Reversed Polish Notation
+     *
      * @param expression expression in Reversed Polish Notation
-     * @param context security context of query
-     * @param arguments arguments of queried field. May be null
+     * @param context    security context of query
+     * @param arguments  arguments of queried field. May be null
      * @return result of solving the expression
      * @throws IllegalArgumentException if expression is incorrect
      */
@@ -74,34 +65,51 @@ public class TokenExpressionSolverImpl implements TokenExpressionSolver {
     private boolean getResult(ComparisonToken token, SecurityContext ctx, Map<String, String> arguments) {
         Object firstValue = getValue(token.getFirstValue(), token.getFirstValueType(), ctx, arguments);
         Object secondValue = getValue(token.getSecondValue(), token.getSecondValueType(), ctx, arguments);
-        if (token.getComparisonType() == ComparisonToken.ComparisonType.EQUALS) {
-            if (firstValue instanceof Temporal && secondValue instanceof Temporal) {
-                return temporalComparator.compare((Temporal) firstValue, (Temporal) secondValue) == 0;
-            } else if (firstValue instanceof Number && secondValue instanceof Number) {
-                return numberComparator.compare((Number) firstValue, (Number) secondValue) == 0;
-            } else {
-                return Objects.equals(firstValue, secondValue);
-            }
+        if (token.getComparisonType() == ComparisonType.EQUALS) {
+            return isEquals(firstValue, secondValue);
         } else {
-            int compareResult;
-            if (firstValue instanceof Temporal && secondValue instanceof Temporal) {
-                compareResult = temporalComparator.compare((Temporal) firstValue, (Temporal) secondValue);
-            } else if (firstValue instanceof Number && secondValue instanceof Number) {
-                compareResult = numberComparator.compare((Number) firstValue, (Number) secondValue);
-            } else {
-                throw new IllegalArgumentException(String.format("Can't compare %s and %s with operation %s",
-                        firstValue, secondValue, token.getComparisonType()));
-            }
-            if (compareResult > 0) {
-                return ComparisonToken.ComparisonType.GT == token.getComparisonType() ||
-                        ComparisonToken.ComparisonType.GTE == token.getComparisonType();
-            } else if (compareResult < 0) {
-                return ComparisonToken.ComparisonType.LT == token.getComparisonType() ||
-                        ComparisonToken.ComparisonType.LTE == token.getComparisonType();
-            } else {
-                return ComparisonToken.ComparisonType.GTE == token.getComparisonType() ||
-                        ComparisonToken.ComparisonType.LTE == token.getComparisonType();
-            }
+            return compare(firstValue, secondValue, token.getComparisonType());
+        }
+    }
+
+    private boolean isEquals(Object firstValue, Object secondValue) {
+        if (firstValue instanceof Number && secondValue instanceof Number) {
+            Number firstNumber = (Number) firstValue;
+            Number secondNumber = (Number) secondValue;
+            return firstNumber.doubleValue() == secondNumber.doubleValue();
+        } else if (firstValue instanceof Temporal && secondValue instanceof Temporal) {
+            ZonedDateTime firstZonedDateTime = TemporalToZonedDateTimeConverter.convert((Temporal) firstValue);
+            ZonedDateTime secondZonedDateTime = TemporalToZonedDateTimeConverter.convert((Temporal) secondValue);
+            return firstZonedDateTime.equals(secondZonedDateTime);
+        } else {
+            return Objects.equals(firstValue, secondValue);
+        }
+    }
+
+    private boolean compare(Object firstValue, Object secondValue, ComparisonType comparisonType) {
+        int compareResult;
+        if (firstValue instanceof Temporal && secondValue instanceof Temporal) {
+            ZonedDateTime firstZonedDateTime = TemporalToZonedDateTimeConverter.convert((Temporal) firstValue);
+            ZonedDateTime secondZonedDateTime = TemporalToZonedDateTimeConverter.convert((Temporal) secondValue);
+            compareResult = firstZonedDateTime.compareTo(secondZonedDateTime);
+        } else if (firstValue instanceof Number && secondValue instanceof Number) {
+            Number firstNumber = (Number) firstValue;
+            Number secondNumber = (Number) secondValue;
+            compareResult = Double.compare(firstNumber.doubleValue(), secondNumber.doubleValue());
+        } else {
+            throw new IllegalArgumentException(String.format("Can't compare %s and %s with operation %s",
+                    firstValue, secondValue, comparisonType));
+        }
+        return isCorrectByComparison(compareResult, comparisonType);
+    }
+
+    private boolean isCorrectByComparison(int compareResult, ComparisonType comparisonType) {
+        if (compareResult > 0) {
+            return ComparisonType.GT == comparisonType || ComparisonType.GTE == comparisonType;
+        } else if (compareResult < 0) {
+            return ComparisonType.LT == comparisonType || ComparisonType.LTE == comparisonType;
+        } else {
+            return ComparisonType.GTE == comparisonType || ComparisonType.LTE == comparisonType;
         }
     }
 
@@ -111,10 +119,10 @@ public class TokenExpressionSolverImpl implements TokenExpressionSolver {
             return null;
         }
         if (ComparisonToken.ValueType.GRAPHQL_ARGUMENT_NAME == valueType) {
-            if (arguments == null || arguments.isEmpty()) {
+            if (arguments == null || arguments.isEmpty() || !(tokenValue instanceof String)) {
                 return null;
             }
-            return arguments.get((String) tokenValue);
+            return arguments.get(tokenValue);
         } else if (ComparisonToken.ValueType.GRAPHQL_CONTEXT_FIELD_NAME == valueType) {
             if (context == null) {
                 return null;

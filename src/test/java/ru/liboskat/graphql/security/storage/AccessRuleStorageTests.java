@@ -9,16 +9,19 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import org.junit.jupiter.api.Test;
 import ru.liboskat.graphql.security.exceptions.InvalidAuthDirectiveException;
-import ru.liboskat.graphql.security.storage.AccessRuleStorage.*;
-import ru.liboskat.graphql.security.storage.ComparisonToken.ComparisonType;
-import ru.liboskat.graphql.security.storage.ComparisonToken.ValueType;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ComparisonType;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ValueType;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -209,60 +212,6 @@ class AccessRuleStorageTests {
                 AccessRuleStorage.newAccessRuleStorage()
                         .inputFieldRule(null, "name", "name")
                         .build());
-    }
-
-    @Test
-    void equalObjectInfo_shouldBeEqual() {
-        assertEquals(new ObjectInfo("object"), new ObjectInfo("object"));
-    }
-
-    @Test
-    void unequalObjectInfo_shouldBeNotEqual() {
-        assertNotEquals(new ObjectInfo("object"), new ObjectInfo("not same"));
-    }
-
-    @Test
-    void equalFieldInfo_shouldBeEqual() {
-        assertEquals(new FieldInfo("object", "field"), new FieldInfo("object", "field"));
-    }
-
-    @Test
-    void unequalFieldInfo_shouldBeNotEqual() {
-        assertNotEquals(new FieldInfo("object", "field"), new FieldInfo("object", "not same"));
-    }
-
-    @Test
-    void equalArgumentInfo_shouldBeEqual() {
-        assertEquals(new ArgumentInfo("object", "field", "arg"),
-                new ArgumentInfo("object", "field", "arg"));
-    }
-
-    @Test
-    void unequalArgumentInfo_shouldBeNotEqual() {
-        assertNotEquals(new ArgumentInfo("object", "field", "arg"),
-                new ArgumentInfo("object", "field", "not same"));
-    }
-
-    @Test
-    void equalInputObjectInfo_shouldBeEqual() {
-        assertEquals(new InputObjectInfo("object"), new InputObjectInfo("object"));
-    }
-
-    @Test
-    void unequalInputObjectInfo_shouldBeNotEqual() {
-        assertNotEquals(new InputObjectInfo("object"), new InputObjectInfo("not same"));
-    }
-
-    @Test
-    void equalInputFieldInfo_shouldBeEqual() {
-        assertEquals(new InputFieldInfo("object", "field"),
-                new InputFieldInfo("object", "field"));
-    }
-
-    @Test
-    void unequalInputFieldInfo_shouldBeNotEqual() {
-        assertNotEquals(new InputFieldInfo("object", "field"),
-                new InputFieldInfo("object", "not same"));
     }
 
     @Test

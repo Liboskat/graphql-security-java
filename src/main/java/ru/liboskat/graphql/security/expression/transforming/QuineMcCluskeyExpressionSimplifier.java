@@ -3,9 +3,9 @@ package ru.liboskat.graphql.security.expression.transforming;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.liboskat.graphql.security.exceptions.InternalErrorException;
-import ru.liboskat.graphql.security.storage.ComparisonToken;
-import ru.liboskat.graphql.security.storage.OperatorToken;
-import ru.liboskat.graphql.security.storage.Token;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
+import ru.liboskat.graphql.security.storage.token.Token;
 import ru.liboskat.graphql.security.storage.TokenExpression;
 
 import java.util.*;
@@ -32,10 +32,10 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
         logger.debug("Simplification of expression {} started", expression);
 
         List<ComparisonToken> variables = expression.getTokens().stream()
-                .filter(token -> token instanceof ComparisonToken)
-                .map(token -> (ComparisonToken) token)
+                .filter(ComparisonToken.class::isInstance)
+                .map(ComparisonToken.class::cast)
                 .distinct()
-                .collect(Collectors.toCollection(ArrayList::new));
+                .collect(Collectors.toList());
 
         if (variables.size() > MAX_VARIABLE_COUNT) {
             logger.debug("Expression {} can't be simplified, number of variables is more than 10", expression);
@@ -46,7 +46,7 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
 
         Map<Integer, Set<MinTermMatch>> step = getNumberOfOnesToMinTerms(minTerms);
         List<MinTermMatch> notMatchableMinTermMatches = new LinkedList<>();
-        while (step != null) {
+        while (!step.isEmpty()) {
             step = nextStep(step, notMatchableMinTermMatches, variables.size());
         }
 
@@ -86,7 +86,7 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
                 int index = IntStream.range(0, variables.size())
                         .filter(i -> token.equals(variables.get(i)))
                         .findFirst()
-                        .orElseThrow(RuntimeException::new);
+                        .orElseThrow(InternalErrorException::new);
                 stack.push(values[index]);
             } else if (token instanceof OperatorToken) {
                 OperatorToken operatorToken = ((OperatorToken) token);
@@ -166,10 +166,9 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
             current = next;
         }
         if (noNewMatches) {
-            return null;
-        } else {
-            return nextStep;
+            return Collections.emptyMap();
         }
+        return nextStep;
     }
 
     private boolean isDifferentByOne(List<Integer> first, List<Integer> second) {

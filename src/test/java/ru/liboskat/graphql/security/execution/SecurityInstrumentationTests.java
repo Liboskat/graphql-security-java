@@ -81,7 +81,7 @@ class SecurityInstrumentationTests {
     @Test
     void queryScalarField_withCorrectContextInObject_shouldHaveZeroErrors() {
         queryScalarField_withCorrectContext_shouldHaveZeroErrors(new Object() {
-            SecurityContext context = SecurityContext.newSecurityContext()
+            final SecurityContext context = SecurityContext.newSecurityContext()
                     .field("schema", "schema")
                     .field("scalarField", "scalarField")
                     .build();

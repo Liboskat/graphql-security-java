@@ -1,5 +1,7 @@
 package ru.liboskat.graphql.security.storage;
 
+import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
+
 /**
  * Class that is used to store and transfer rules in String form
  */
@@ -129,7 +131,7 @@ public class StringExpressionRule {
         }
 
         private void throwExceptionIfNullOrEmpty(String rule) {
-            if (rule == null || rule.isEmpty()) {
+            if (isNullOrEmpty(rule)) {
                 throw new IllegalArgumentException("Rule can't be null or empty");
             }
         }
@@ -139,8 +141,7 @@ public class StringExpressionRule {
          * @throws IllegalArgumentException if read rule and write rule and read-write rule is null or empty
          */
         public StringExpressionRule build() {
-            if ((readRule == null || readRule.isEmpty()) && (writeRule == null || writeRule.isEmpty()) &&
-                    (readWriteRule == null || readWriteRule.isEmpty())) {
+            if (isNullOrEmpty(readRule) && isNullOrEmpty(writeRule) && isNullOrEmpty(readWriteRule)) {
                 throw new IllegalArgumentException("At least one of rules must be not empty");
             }
             return new StringExpressionRule(readRule, writeRule, readWriteRule);

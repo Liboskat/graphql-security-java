@@ -25,7 +25,8 @@ import java.util.*;
 import java.util.Map.Entry;
 
 /**
- * An implementation of {@link graphql.execution.instrumentation.Instrumentation} that do access control checks of queries
+ * An implementation of {@link graphql.execution.instrumentation.Instrumentation} that
+ * do access control checks of queries
  */
 public class SecurityInstrumentation extends SimpleInstrumentation {
     private static final Logger logNotSafe = LogKit.getNotPrivacySafeLogger(SecurityInstrumentation.class);
@@ -166,32 +167,53 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
     }
 
 
-    private void checkInput(GraphQLInput input, OperationType operationType, SecurityContext ctx,
+    private void checkInput(GraphQLInput input, OperationType operationType, SecurityContext context,
                             SecurityInstrumentationState state) {
-        if (input.getType() instanceof GraphQLInputObjectType && input.getValue() instanceof ObjectValue) {
-            GraphQLInputObjectType type = (GraphQLInputObjectType) input.getType();
-            String typeName = type.getName();
-            ObjectValue value = (ObjectValue) input.getValue();
-            if (state.isNotCheckedInput(typeName)) {
-                accessRuleStorage.getInputObjectRule(typeName)
-                        .ifPresent(rule -> checkRule(operationType, rule, ctx, null));
-                state.checkedInputs.add(typeName);
-            }
-            value.getObjectFields().stream()
-                    .filter(objectField -> objectField.getName() != null && objectField.getValue() != null)
-                    .peek(objectField -> accessRuleStorage.getInputFieldRule(type.getName(), objectField.getName())
-                            .ifPresent(rule -> checkRule(operationType, rule, ctx, null)))
-                    .forEach(objectField -> {
-                        GraphQLInputObjectField fieldDef = type.getField(objectField.getName());
-                        GraphQLType fieldType = fieldDef != null ? fieldDef.getType() : null;
-                        if (fieldType instanceof GraphQLNonNull) {
-                            fieldType = ((GraphQLNonNull) fieldType).getWrappedType();
-                        }
-                        if (fieldType instanceof GraphQLNamedInputType) {
-                            checkInput(new GraphQLInput(objectField.getValue(), (GraphQLNamedInputType) fieldType),
-                                    operationType, ctx, state);
-                        }
-                    });
+        if (!(input.getType() instanceof GraphQLInputObjectType) || !(input.getValue() instanceof ObjectValue)) {
+            return;
+        }
+        GraphQLInputObjectType type = (GraphQLInputObjectType) input.getType();
+        checkInputTypeRule(operationType, context, state, type);
+
+        ObjectValue value = (ObjectValue) input.getValue();
+        value.getObjectFields().stream()
+                .filter(this::notEmpty)
+                .peek(objectField -> checkInputFieldRule(operationType, context, type, objectField))
+                .forEach(objectField -> checkInputFieldType(operationType, context, state, type, objectField));
+    }
+
+    private boolean notEmpty(ObjectField objectField) {
+        return objectField.getName() != null && objectField.getValue() != null;
+    }
+
+    private void checkInputTypeRule(OperationType operationType, SecurityContext context,
+                                    SecurityInstrumentationState state,
+                                    GraphQLInputObjectType type) {
+        String typeName = type.getName();
+        if (state.isNotCheckedInput(typeName)) {
+            accessRuleStorage.getInputObjectRule(typeName)
+                    .ifPresent(rule -> checkRule(operationType, rule, context, null));
+            state.checkedInputs.add(typeName);
+        }
+    }
+
+    private void checkInputFieldRule(OperationType operationType, SecurityContext context,
+                                     GraphQLInputObjectType parentType, ObjectField field) {
+        accessRuleStorage.getInputFieldRule(parentType.getName(), field.getName())
+                .ifPresent(rule -> checkRule(operationType, rule, context, null));
+    }
+
+    private void checkInputFieldType(OperationType operationType, SecurityContext context,
+                                     SecurityInstrumentationState state,
+                                     GraphQLInputObjectType parentType, ObjectField field) {
+        GraphQLInputObjectField fieldDef = parentType.getField(field.getName());
+        GraphQLType fieldType = fieldDef != null ? fieldDef.getType() : null;
+        if (fieldType instanceof GraphQLNonNull) {
+            fieldType = ((GraphQLNonNull) fieldType).getWrappedType();
+        }
+        if (fieldType instanceof GraphQLNamedInputType) {
+            checkInput(new GraphQLInput(field.getValue(), (GraphQLNamedInputType) fieldType),
+                    operationType, context, state);
         }
     }
 
@@ -233,10 +255,10 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
     private SecurityContext retrieveSecurityContext(Object context) {
         if (context instanceof SecurityContext) {
             return (SecurityContext) context;
-        } else if (context instanceof Map) {
-            for (Object object : ((Map) context).entrySet()) {
-                if (object instanceof Entry && ((Entry) object).getValue() instanceof SecurityContext) {
-                    return (SecurityContext) ((Entry) object).getValue();
+        } else if (context instanceof Map<?, ?>) {
+            for (Object object : ((Map<?, ?>) context).entrySet()) {
+                if (object instanceof Entry && ((Entry<?, ?>) object).getValue() instanceof SecurityContext) {
+                    return (SecurityContext) ((Entry<?, ?>) object).getValue();
                 }
             }
         } else if (context != null) {
@@ -311,17 +333,17 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
     }
 
     private static class GraphQLInput {
-        private final Value value;
+        private final Value<?> value;
         private final GraphQLNamedInputType type;
         private final String typeName;
 
-        GraphQLInput(Value value, GraphQLNamedInputType type) {
+        GraphQLInput(Value<?> value, GraphQLNamedInputType type) {
             this.value = value;
             this.type = type;
             this.typeName = type != null ? type.getName() : null;
         }
 
-        Value getValue() {
+        Value<?> getValue() {
             return value;
         }
 

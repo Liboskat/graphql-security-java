@@ -1,4 +1,4 @@
-package ru.liboskat.graphql.security.storage;
+package ru.liboskat.graphql.security.storage.token;
 
 /**
  * An implementation of {@link Token} that is used to store information about operator

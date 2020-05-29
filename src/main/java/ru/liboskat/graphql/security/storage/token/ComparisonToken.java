@@ -1,5 +1,11 @@
-package ru.liboskat.graphql.security.storage;
+package ru.liboskat.graphql.security.storage.token;
 
+import ru.liboskat.graphql.security.utils.TemporalToZonedDateTimeConverter;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.Temporal;
 import java.util.Objects;
 
 /**
@@ -41,21 +47,6 @@ public class ComparisonToken implements Token {
         return comparisonType;
     }
 
-    /**
-     * Compares ComparisonToken objects correctly
-     * Let be 'a' - first object and 'b' - second object, '1' - first value and type, '2' - second value and type
-     * For example a2 is first object second value and type
-     * '<' is opposite to '>' and '<=' is opposite to '=>'
-     * Then objects is equal if:
-     * 1. if objects comparison type = '=':
-     *        a1=b1 & a2=b2 | a1=b2 & a2=b1
-     * 2. if first object type != '=' and second object type is same:
-     *        a1=b1 & a2=b2
-     * 2. if first object type != '=' and second object type is opposite:
-     *        a1=b2 & a2=b1
-     * @param o other object
-     * @return result of comparison
-     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -122,8 +113,7 @@ public class ComparisonToken implements Token {
         NULL,
         BOOLEAN,
         INTEGER,
-        LONG,
-        DOUBLE,
+        REAL,
         ZONED_DATE_TIME,
         LOCAL_DATE_TIME,
         LOCAL_DATE,
@@ -176,8 +166,8 @@ public class ComparisonToken implements Token {
          * @throws IllegalArgumentException if value or type is null
          */
         public Builder firstValue(Object value, ValueType valueType) {
-            throwIfNullValueOrType(value);
-            throwIfNullValueOrType(valueType);
+            throwIfNullValue(value);
+            throwIfNullValueType(valueType);
             this.firstValue = value;
             this.firstValueType = valueType;
             return this;
@@ -190,7 +180,7 @@ public class ComparisonToken implements Token {
          * @throws IllegalArgumentException if value is null
          */
         public Builder firstValue(Object value) {
-            throwIfNullValueOrType(value);
+            throwIfNullValue(value);
             this.firstValue = value;
             return this;
         }
@@ -202,7 +192,7 @@ public class ComparisonToken implements Token {
          * @throws IllegalArgumentException if type is null
          */
         public Builder firstValueType(ValueType valueType) {
-            throwIfNullValueOrType(valueType);
+            throwIfNullValueType(valueType);
             this.firstValueType = valueType;
             return this;
         }
@@ -215,8 +205,8 @@ public class ComparisonToken implements Token {
          * @throws IllegalArgumentException if value or type is null
          */
         public Builder secondValue(Object value, ValueType valueType) {
-            throwIfNullValueOrType(value);
-            throwIfNullValueOrType(valueType);
+            throwIfNullValue(value);
+            throwIfNullValueType(valueType);
             this.secondValue = value;
             this.secondValueType = valueType;
             return this;
@@ -229,7 +219,7 @@ public class ComparisonToken implements Token {
          * @throws IllegalArgumentException if value is null
          */
         public Builder secondValue(Object value) {
-            throwIfNullValueOrType(value);
+            throwIfNullValue(value);
             this.secondValue = value;
             return this;
         }
@@ -241,7 +231,7 @@ public class ComparisonToken implements Token {
          * @throws IllegalArgumentException if type is null
          */
         public Builder secondValueType(ValueType valueType) {
-            throwIfNullValueOrType(valueType);
+            throwIfNullValueType(valueType);
             this.secondValueType = valueType;
             return this;
         }
@@ -253,14 +243,26 @@ public class ComparisonToken implements Token {
          * @throws IllegalArgumentException if type is null
          */
         public Builder comparisonType(ComparisonType comparisonType) {
-            throwIfNullValueOrType(comparisonType);
+            throwIfNullComparisonType(comparisonType);
             this.comparisonType = comparisonType;
             return this;
         }
 
-        private void throwIfNullValueOrType(Object nullableObject) {
+        private void throwIfNullValue(Object nullableObject) {
             if (nullableObject == null) {
-                throw new IllegalArgumentException("Value or type can't be null");
+                throw new IllegalArgumentException("Value can't be null");
+            }
+        }
+
+        private void throwIfNullValueType(ValueType nullableType) {
+            if (nullableType == null) {
+                throw new IllegalArgumentException("ValueType can't be null");
+            }
+        }
+
+        private void throwIfNullComparisonType(ComparisonType nullableType) {
+            if (nullableType == null) {
+                throw new IllegalArgumentException("ComparisonType can't be null");
             }
         }
 
@@ -270,12 +272,21 @@ public class ComparisonToken implements Token {
          * or type can't be compared using comparison type
          */
         public ComparisonToken build() {
-            if (firstValue == null || firstValueType == null || secondValue == null || secondValueType == null) {
-                throw new IllegalArgumentException("Values and types can't be null");
-            }
-            if (comparisonType == null) {
-                comparisonType = ComparisonType.EQUALS;
-            }
+            throwIfNullValue(firstValue);
+            throwIfNullValue(secondValue);
+            throwIfNullValueType(firstValueType);
+            throwIfNullValueType(secondValueType);
+            throwIfNullComparisonType(comparisonType);
+
+            checkOnlyEqualsComparisonValueTypes();
+            checkNotComparableTypes();
+
+            firstValue = transformToCorrectJavaType(firstValue, firstValueType);
+            secondValue = transformToCorrectJavaType(secondValue, secondValueType);
+            return new ComparisonToken(firstValue, firstValueType, secondValue, secondValueType, comparisonType);
+        }
+
+        private void checkOnlyEqualsComparisonValueTypes() {
             if (comparisonType != ComparisonType.EQUALS && (firstValueType == ValueType.STRING ||
                     firstValueType == ValueType.BOOLEAN || firstValueType == ValueType.NULL ||
                     secondValueType == ValueType.STRING || secondValueType == ValueType.BOOLEAN ||
@@ -283,6 +294,9 @@ public class ComparisonToken implements Token {
                 throw new IllegalArgumentException(String.format("Operation %s is illegal with type %s",
                         comparisonType.getStringRepresentation(), firstValueType));
             }
+        }
+
+        private void checkNotComparableTypes() {
             if (firstValueType != secondValueType &&
                     firstValueType != ValueType.GRAPHQL_ARGUMENT_NAME &&
                     firstValueType != ValueType.GRAPHQL_CONTEXT_FIELD_NAME &&
@@ -291,7 +305,20 @@ public class ComparisonToken implements Token {
                 throw new IllegalArgumentException(String.format("Can't compare values with types: %s, %s",
                         firstValueType, secondValueType));
             }
-            return new ComparisonToken(firstValue, firstValueType, secondValue, secondValueType, comparisonType);
+        }
+
+        private Object transformToCorrectJavaType(Object value, ValueType type) {
+            if (type == ValueType.INTEGER && value instanceof Number) {
+                value = ((Number) value).longValue();
+            }
+            if (type == ValueType.REAL && value instanceof Number) {
+                value = ((Number) value).doubleValue();
+            }
+            if (value instanceof LocalDateTime || value instanceof LocalDate || value instanceof LocalTime) {
+                value = TemporalToZonedDateTimeConverter.convert((Temporal) value);
+            }
+
+            return value;
         }
     }
 

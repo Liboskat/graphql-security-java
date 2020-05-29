@@ -1,6 +1,6 @@
 package ru.liboskat.graphql.security.expression.transforming;
 
-import ru.liboskat.graphql.security.storage.OperatorToken;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
 import ru.liboskat.graphql.security.storage.TokenExpression;
 
 import java.util.List;

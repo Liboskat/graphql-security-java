@@ -1,6 +1,7 @@
 package ru.liboskat.graphql.security.storage;
 
 import org.junit.jupiter.api.Test;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
 
 import java.util.Arrays;
 

@@ -3,6 +3,8 @@ package ru.liboskat.graphql.security.execution;
 import java.util.HashMap;
 import java.util.Map;
 
+import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
+
 /**
  * Used to store context that may be used in access control checks
  */
@@ -45,8 +47,8 @@ public class SecurityContext {
          * @return this builder
          */
         public Builder field(String key, Object value) {
-            if (key == null) {
-                throw new IllegalArgumentException("Key can't be null");
+            if (isNullOrEmpty(key)) {
+                throw new IllegalArgumentException("Key can't be null or empty");
             }
             contextFields.put(key, value);
             return this;

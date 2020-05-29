@@ -1,11 +1,9 @@
 package ru.liboskat.graphql.security.expression.transforming;
 
 import org.junit.jupiter.api.Test;
-import ru.liboskat.graphql.security.expression.transforming.TokenExpressionCombiner;
-import ru.liboskat.graphql.security.expression.transforming.TokenExpressionConjunctCombiner;
-import ru.liboskat.graphql.security.storage.ComparisonToken;
-import ru.liboskat.graphql.security.storage.OperatorToken;
-import ru.liboskat.graphql.security.storage.Token;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken;
+import ru.liboskat.graphql.security.storage.token.OperatorToken;
+import ru.liboskat.graphql.security.storage.token.Token;
 import ru.liboskat.graphql.security.storage.TokenExpression;
 
 import java.util.ArrayList;

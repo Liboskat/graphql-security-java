@@ -1,11 +1,12 @@
-package ru.liboskat.graphql.security.storage;
+package ru.liboskat.graphql.security.storage.token;
 
 import org.junit.jupiter.api.Test;
-import ru.liboskat.graphql.security.storage.ComparisonToken.ComparisonType;
-import ru.liboskat.graphql.security.storage.ComparisonToken.NullValue;
-import ru.liboskat.graphql.security.storage.ComparisonToken.ValueType;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ComparisonType;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.NullValue;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ValueType;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,7 +18,8 @@ class ComparisonTokenTests {
                 .secondValue("value", ValueType.GRAPHQL_CONTEXT_FIELD_NAME)
                 .comparisonType(ComparisonType.GT)
                 .build();
-        assertAll(() -> assertEquals(comparisonToken.getFirstValue(), LocalDate.parse("2018-10-10")),
+        assertAll(() -> assertEquals(comparisonToken.getFirstValue(),
+                LocalDate.parse("2018-10-10").atStartOfDay(ZoneId.systemDefault())),
                 () -> assertEquals(comparisonToken.getFirstValueType(), ValueType.LOCAL_DATE),
                 () -> assertEquals(comparisonToken.getSecondValue(), "value"),
                 () -> assertEquals(comparisonToken.getSecondValueType(), ValueType.GRAPHQL_CONTEXT_FIELD_NAME),
