@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Thrown if access to resource is denied.
- * Can be put to the list of GraphQL execution errors.
+ * Выбрасывается в случае остутствия доступа
+ * Может быть добавлен в список ошибок запроса GraphQL
  */
 public class AuthException extends RuntimeException implements GraphQLError {
     public static final String TARGET_ATTRIBUTE_NAME = "target";
@@ -32,8 +32,8 @@ public class AuthException extends RuntimeException implements GraphQLError {
     }
 
     /**
-     * Creates exception with information about target
-     * @param ruleTargetInfo information about access check target
+     * Создает исключение с информацией об объекте, к которому был запрещен доступ
+     * @param ruleTargetInfo объект, к которому был запрещен доступ
      */
     public AuthException(RuleTargetInfo ruleTargetInfo) {
         super(String.format("Access denied to %s", ruleTargetInfo));

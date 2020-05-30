@@ -6,20 +6,19 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Interface that is used to write classes that combine {@link TokenExpression} objects
+ * Интерфейс, используемый для объединения выражений {@link TokenExpression}
  */
 public interface TokenExpressionCombiner {
     /**
-     * Combines two {@link TokenExpression}
-     * @return combined {@link TokenExpression}
+     * @return объединенное выражение {@link TokenExpression}
      */
     default TokenExpression combine(TokenExpression firstExpression, TokenExpression secondExpression) {
         return combine(Arrays.asList(firstExpression, secondExpression));
     }
 
     /**
-     * Combines list of {@link TokenExpression}
-     * @return combined {@link TokenExpression}
+     * Объединяет список выражений в одно
+     * @return объединенное выражений {@link TokenExpression}
      */
     TokenExpression combine(List<TokenExpression> tokenExpressions);
 }

@@ -8,12 +8,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * An implementation of {@link TokenExpressionCombiner} that is used to conjunct expressions in Reversed Polish Notation
+ * Реализация интерфейса {@link TokenExpressionCombiner}, используемая для объединения выражений, используя конъюнкцию
  */
 public class TokenExpressionConjunctCombiner implements TokenExpressionCombiner {
     /**
-     * @param tokenExpressions some expressions in Reversed Polish Notation
-     * @return conjunction of expressions
+     * @param tokenExpressions выражения в обратной польской записи
+     * @return конъюнкция списка выражений
      */
     @Override
     public TokenExpression combine(List<TokenExpression> tokenExpressions) {

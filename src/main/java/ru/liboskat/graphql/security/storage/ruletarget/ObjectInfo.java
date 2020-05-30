@@ -4,9 +4,6 @@ import java.util.Objects;
 
 import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
 
-/**
- * Class with information about object
- */
 public class ObjectInfo implements RuleTargetInfo {
     private final String name;
 
@@ -18,10 +15,6 @@ public class ObjectInfo implements RuleTargetInfo {
         return name;
     }
 
-    /**
-     * @param name name of type
-     * @throws IllegalArgumentException if name is null or empty
-     */
     public static ObjectInfo newObjectInfo(String name) {
         if (isNullOrEmpty(name)) {
             throw new IllegalArgumentException("Object name can't be null or empty");

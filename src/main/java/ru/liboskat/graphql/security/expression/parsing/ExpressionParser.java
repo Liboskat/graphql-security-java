@@ -3,12 +3,12 @@ package ru.liboskat.graphql.security.expression.parsing;
 import ru.liboskat.graphql.security.storage.TokenExpression;
 
 /**
- * Interface that is used to write classes that parse string expressions
+ * Интерфейс для создания классов, производящих парсинг строковых выражений
  */
 public interface ExpressionParser {
     /**
-     * @param expression some string expression
-     * @return parsed expression
+     * @param expression некое строковое выражение
+     * @return выражение в объектном виде
      */
     TokenExpression parse(String expression);
 }

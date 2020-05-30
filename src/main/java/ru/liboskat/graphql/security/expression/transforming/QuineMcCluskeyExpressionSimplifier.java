@@ -13,8 +13,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * An implementation of {@link ExpressionSimplifier} that is used to simplify {@link TokenExpression}
- * in Reverse Polish Notation using Quine-McCluskey boolean minimization algorithm
+ * Реализация интерфейса {@link ExpressionSimplifier}, используемая для минимизации {@link TokenExpression}
+ * в обратной польской записи с помощью алгоритма Куайна-МакКласки
  */
 public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier {
     private static final Logger logger = LoggerFactory.getLogger(QuineMcCluskeyExpressionSimplifier.class);
@@ -22,10 +22,11 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
     private static final int MAX_VARIABLE_COUNT = 10;
 
     /**
-     * Minimizes {@link TokenExpression} in Reverse Polish Notation using
-     * Quine-McCluskey boolean minimization algorithm
-     * @param expression {@link TokenExpression} in Reverse Polish Notation
-     * @return minimized {@link TokenExpression} or same expression if number of variables is more than 10
+     * Минимизирует {@link TokenExpression} в обратной польской записи, используя
+     * алгоритм минимизации булевых выражений Куйана-МакКласки
+     * @param expression {@link TokenExpression} в обратной польской записи
+     * @return минимизированное выражение {@link TokenExpression} или то же самое выражение, если число переменных
+     * больше 10
      */
     @Override
     public TokenExpression simplify(TokenExpression expression) {

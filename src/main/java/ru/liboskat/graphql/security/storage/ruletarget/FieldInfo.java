@@ -4,9 +4,6 @@ import java.util.Objects;
 
 import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
 
-/**
- * Class with information about field
- */
 public class FieldInfo implements RuleTargetInfo {
     private final String typeName;
     private final String fieldName;
@@ -24,11 +21,6 @@ public class FieldInfo implements RuleTargetInfo {
         return fieldName;
     }
 
-    /**
-     * @param typeName name of parent type
-     * @param fieldName field name
-     * @throws IllegalArgumentException if one or more of typeName, fieldName is null or empty
-     */
     public static FieldInfo newFieldInfo(String typeName, String fieldName) {
         if (isNullOrEmpty(typeName) || isNullOrEmpty(fieldName) ) {
             throw new IllegalArgumentException("TypeName and fieldName can't be null or empty");

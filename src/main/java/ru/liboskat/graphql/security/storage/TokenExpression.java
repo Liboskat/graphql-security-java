@@ -7,45 +7,25 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Class that is used to store {@link Token} in order of addition
- */
 public class TokenExpression {
     private final List<Token> tokens;
 
-    /**
-     * Creates empty expression
-     */
     public TokenExpression() {
         this.tokens = new ArrayList<>();
     }
 
-    /**
-     * @return list of all tokens preserving order
-     */
     public List<Token> getTokens() {
         return tokens;
     }
 
-    /**
-     * Adds token to expression
-     * @param token some token
-     */
     public void addToken(Token token) {
         tokens.add(token);
     }
 
-    /**
-     * Adds all tokens from list to expression
-     * @param tokens list of tokens
-     */
     public void addAllTokens(List<Token> tokens) {
         this.tokens.addAll(tokens);
     }
 
-    /**
-     * @return true if expression is empty, else false
-     */
     public boolean isEmpty() {
         return tokens.isEmpty();
     }

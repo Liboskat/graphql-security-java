@@ -15,18 +15,18 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 
 /**
- * An implementation of {@link TokenExpressionSolver} that is used to solve {@link TokenExpression}
- * in Reversed Polish Notation.
+ * Реализация {@link TokenExpressionSolver}, используемая для решения выражений {@link TokenExpression}
+ * в обратной польской записи
  */
 public class TokenExpressionSolverImpl implements TokenExpressionSolver {
     /**
-     * Solves {@link TokenExpression} in Reversed Polish Notation
+     * Решает выражение в обратной польской записи
      *
-     * @param expression expression in Reversed Polish Notation
-     * @param context    security context of query
-     * @param arguments  arguments of queried field. May be null
-     * @return result of solving the expression
-     * @throws IllegalArgumentException if expression is incorrect
+     * @param expression выражение в обратное польской записи
+     * @param context    контекст безопасности запроса
+     * @param arguments  аргументы поля, могут быть null
+     * @return результат решения выражения
+     * @throws IllegalArgumentException, если выражение неверное
      */
     @Override
     public boolean solve(TokenExpression expression, SecurityContext context, Map<String, String> arguments) {

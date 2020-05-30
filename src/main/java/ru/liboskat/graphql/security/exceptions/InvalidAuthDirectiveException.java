@@ -1,11 +1,11 @@
 package ru.liboskat.graphql.security.exceptions;
 
 /**
- * Thrown if @auth directive definition from schema is invalid
+ * Выбрасывается если директива @auth некорректа
  */
 public class InvalidAuthDirectiveException extends RuntimeException {
     /**
-     * Creates exception with default message
+     * Создает исключение с сообщением по умолчанию
      */
     public InvalidAuthDirectiveException() {
         super("Invalid auth directive. Directive may add automatically. Correct is " + System.lineSeparator() +

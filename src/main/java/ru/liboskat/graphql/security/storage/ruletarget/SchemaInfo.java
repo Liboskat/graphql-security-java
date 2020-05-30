@@ -1,8 +1,5 @@
 package ru.liboskat.graphql.security.storage.ruletarget;
 
-/**
- * Class that shows that target is schema
- */
 public class SchemaInfo implements RuleTargetInfo {
     private SchemaInfo() {}
 

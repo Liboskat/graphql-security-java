@@ -16,9 +16,6 @@ import java.util.*;
 
 import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
 
-/**
- * This class is used to store rules of schema, objects, fields, arguments, input objects, input fields
- */
 public class AccessRuleStorage {
     private static final Logger logger = LoggerFactory.getLogger(AccessRuleStorage.class);
 
@@ -52,9 +49,6 @@ public class AccessRuleStorage {
         this.inputFieldRules = inputFieldRules;
     }
 
-    /**
-     * @return new {@link Builder} instance
-     */
     public static AccessRuleStorage.Builder newAccessRuleStorage() {
         return new Builder();
     }
@@ -83,9 +77,6 @@ public class AccessRuleStorage {
         return Optional.ofNullable(inputFieldRules.get(InputFieldInfo.newInputFieldInfo(inputObjectName, inputFieldName)));
     }
 
-    /**
-     * This class is used to construct {@link AccessRuleStorage}
-     */
     public static class Builder {
         private static final List<String> DIRECTIVE_INPUT_VALUE_NAMES = Arrays.asList("rw", "r", "w");
         private static final List<String> DIRECTIVE_LOCATIONS = Arrays.asList(
@@ -125,7 +116,7 @@ public class AccessRuleStorage {
         }
 
         /**
-         * Adds schema rule
+         * Добавляет правило схемы
          *
          * @param rule rules in string format
          * @return this builder

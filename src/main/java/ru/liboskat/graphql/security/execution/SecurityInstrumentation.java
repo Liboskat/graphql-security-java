@@ -5,10 +5,7 @@ import graphql.execution.AbortExecutionException;
 import graphql.execution.ExecutionContext;
 import graphql.execution.ExecutionStrategyParameters;
 import graphql.execution.MergedField;
-import graphql.execution.instrumentation.ExecutionStrategyInstrumentationContext;
-import graphql.execution.instrumentation.InstrumentationContext;
-import graphql.execution.instrumentation.InstrumentationState;
-import graphql.execution.instrumentation.SimpleInstrumentation;
+import graphql.execution.instrumentation.*;
 import graphql.execution.instrumentation.parameters.InstrumentationExecuteOperationParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
 import graphql.language.*;
@@ -25,8 +22,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 /**
- * An implementation of {@link graphql.execution.instrumentation.Instrumentation} that
- * do access control checks of queries
+ * Реализация интерфейса {@link Instrumentation}, позволяющая производить проверки контроля доступа
  */
 public class SecurityInstrumentation extends SimpleInstrumentation {
     private static final Logger logNotSafe = LogKit.getNotPrivacySafeLogger(SecurityInstrumentation.class);

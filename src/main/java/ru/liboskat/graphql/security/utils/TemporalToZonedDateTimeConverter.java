@@ -3,6 +3,9 @@ package ru.liboskat.graphql.security.utils;
 import java.time.*;
 import java.time.temporal.Temporal;
 
+/**
+ * Класс для конвертации LocalTime, LocalDate, LocalDateTime в ZonedDateTime
+ */
 public class TemporalToZonedDateTimeConverter {
     public static ZonedDateTime convert(Temporal value) {
         if (value instanceof ZonedDateTime) {

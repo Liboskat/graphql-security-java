@@ -1,8 +1,5 @@
 package ru.liboskat.graphql.security.storage.token;
 
-/**
- * An implementation of {@link Token} that is used to store information about operator
- */
 public enum OperatorToken implements Token {
     LEFT_PARENTHESIS("("),
     RIGHT_PARENTHESIS(")"),
@@ -22,9 +19,6 @@ public enum OperatorToken implements Token {
         this.stringRepresentation = stringRepresentation;
     }
 
-    /**
-     * @return precedence of operator
-     */
     public int getPrecedence() {
         return precedence;
     }
