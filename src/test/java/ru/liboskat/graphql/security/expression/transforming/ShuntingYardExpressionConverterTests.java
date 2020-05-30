@@ -43,7 +43,7 @@ class ShuntingYardExpressionConverterTests {
         infix.addToken(getSimpleComparisonToken("f"));
         infix.addToken(OperatorToken.OR);
         infix.addToken(OperatorToken.NOT);
-        infix.addToken(OperatorToken.LEFT_PAREN);
+        infix.addToken(OperatorToken.LEFT_PARENTHESIS);
         infix.addToken(getSimpleComparisonToken("a"));
         infix.addToken(OperatorToken.AND);
         infix.addToken(getSimpleComparisonToken("b"));
@@ -51,7 +51,7 @@ class ShuntingYardExpressionConverterTests {
         infix.addToken(getSimpleComparisonToken("c"));
         infix.addToken(OperatorToken.AND);
         infix.addToken(getSimpleComparisonToken("d"));
-        infix.addToken(OperatorToken.RIGHT_PAREN);
+        infix.addToken(OperatorToken.RIGHT_PARENTHESIS);
 
         TokenExpression rpn = new TokenExpression();
         rpn.addToken(getSimpleComparisonToken("e"));
@@ -75,7 +75,7 @@ class ShuntingYardExpressionConverterTests {
         infix.addToken(getSimpleComparisonToken("a"));
         infix.addToken(OperatorToken.AND);
         infix.addToken(getSimpleComparisonToken("b"));
-        infix.addToken(OperatorToken.RIGHT_PAREN);
+        infix.addToken(OperatorToken.RIGHT_PARENTHESIS);
         assertThrows(IllegalArgumentException.class, () -> converter.convertToRpn(infix));
     }
 

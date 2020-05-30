@@ -52,18 +52,18 @@ public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
                     (topOfOperatorStack = operatorStack.peekFirst()) != null &&
                     (topOfOperatorStack == OperatorToken.NOT ||
                             topOfOperatorStack.getPrecedence() >= operator.getPrecedence()) &&
-                    topOfOperatorStack != OperatorToken.LEFT_PAREN) {
+                    topOfOperatorStack != OperatorToken.LEFT_PARENTHESIS) {
                 rpnExpression.addToken(operatorStack.pop());
             }
             operatorStack.push(operator);
         }
-        if (operator == OperatorToken.LEFT_PAREN) {
+        if (operator == OperatorToken.LEFT_PARENTHESIS) {
             operatorStack.push(operator);
         }
-        if (operator == OperatorToken.RIGHT_PAREN) {
+        if (operator == OperatorToken.RIGHT_PARENTHESIS) {
             boolean leftParenFound = false;
             while (operatorStack.peekFirst() != null && !leftParenFound) {
-                if (operatorStack.peekFirst() == OperatorToken.LEFT_PAREN) {
+                if (operatorStack.peekFirst() == OperatorToken.LEFT_PARENTHESIS) {
                     leftParenFound = true;
                 } else {
                     rpnExpression.addToken(operatorStack.pop());

@@ -301,14 +301,14 @@ class SimpleExpressionParserTests {
         String expression = "!(a >= {1})";
         TokenExpression correct = new TokenExpression();
         correct.addToken(OperatorToken.NOT);
-        correct.addToken(OperatorToken.LEFT_PAREN);
+        correct.addToken(OperatorToken.LEFT_PARENTHESIS);
         correct.addToken(ComparisonToken.builder()
                 .firstValue("a", ValueType.GRAPHQL_CONTEXT_FIELD_NAME)
                 .secondValue(1, ValueType.INTEGER)
                 .comparisonType(ComparisonType.GTE)
                 .build()
         );
-        correct.addToken(OperatorToken.RIGHT_PAREN);
+        correct.addToken(OperatorToken.RIGHT_PARENTHESIS);
         assertEquals(correct, expressionParser.parse(expression));
     }
 
@@ -316,7 +316,7 @@ class SimpleExpressionParserTests {
     void parse_correctIN_shouldBeParsedCorrectly() {
         String expression = "a IN ('b', 'c')";
         TokenExpression correct = new TokenExpression();
-        correct.addToken(OperatorToken.LEFT_PAREN);
+        correct.addToken(OperatorToken.LEFT_PARENTHESIS);
         correct.addToken(ComparisonToken.builder()
                 .firstValue("a", ValueType.GRAPHQL_CONTEXT_FIELD_NAME)
                 .secondValue("b", ValueType.STRING)
@@ -330,7 +330,7 @@ class SimpleExpressionParserTests {
                 .comparisonType(ComparisonType.EQUALS)
                 .build()
         );
-        correct.addToken(OperatorToken.RIGHT_PAREN);
+        correct.addToken(OperatorToken.RIGHT_PARENTHESIS);
         assertEquals(correct, expressionParser.parse(expression));
     }
 
@@ -338,7 +338,7 @@ class SimpleExpressionParserTests {
     void parse_correctNotIN_shouldBeParsedCorrectly() {
         String expression = "a NOT IN ('b', 'c')";
         TokenExpression correct = new TokenExpression();
-        correct.addToken(OperatorToken.LEFT_PAREN);
+        correct.addToken(OperatorToken.LEFT_PARENTHESIS);
         correct.addToken(OperatorToken.NOT);
         correct.addToken(ComparisonToken.builder()
                 .firstValue("a", ValueType.GRAPHQL_CONTEXT_FIELD_NAME)
@@ -354,7 +354,7 @@ class SimpleExpressionParserTests {
                 .comparisonType(ComparisonType.EQUALS)
                 .build()
         );
-        correct.addToken(OperatorToken.RIGHT_PAREN);
+        correct.addToken(OperatorToken.RIGHT_PARENTHESIS);
         assertEquals(correct, expressionParser.parse(expression));
     }
 
@@ -363,7 +363,7 @@ class SimpleExpressionParserTests {
         String expression = "!(a <= {1} | a = 'b') & (a >= {1} | a = 'a')";
         TokenExpression correct = new TokenExpression();
         correct.addToken(OperatorToken.NOT);
-        correct.addToken(OperatorToken.LEFT_PAREN);
+        correct.addToken(OperatorToken.LEFT_PARENTHESIS);
         correct.addToken(ComparisonToken.builder()
                 .firstValue("a", ValueType.GRAPHQL_CONTEXT_FIELD_NAME)
                 .secondValue(1, ValueType.INTEGER)
@@ -377,9 +377,9 @@ class SimpleExpressionParserTests {
                 .comparisonType(ComparisonType.EQUALS)
                 .build()
         );
-        correct.addToken(OperatorToken.RIGHT_PAREN);
+        correct.addToken(OperatorToken.RIGHT_PARENTHESIS);
         correct.addToken(OperatorToken.AND);
-        correct.addToken(OperatorToken.LEFT_PAREN);
+        correct.addToken(OperatorToken.LEFT_PARENTHESIS);
         correct.addToken(ComparisonToken.builder()
                 .firstValue("a", ValueType.GRAPHQL_CONTEXT_FIELD_NAME)
                 .secondValue(1, ValueType.INTEGER)
@@ -393,7 +393,7 @@ class SimpleExpressionParserTests {
                 .comparisonType(ComparisonType.EQUALS)
                 .build()
         );
-        correct.addToken(OperatorToken.RIGHT_PAREN);
+        correct.addToken(OperatorToken.RIGHT_PARENTHESIS);
         assertEquals(correct, expressionParser.parse(expression));
     }
 

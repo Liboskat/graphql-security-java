@@ -2,24 +2,29 @@ package ru.liboskat.graphql.security.expression.parsing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.liboskat.graphql.security.exceptions.InternalErrorException;
 import ru.liboskat.graphql.security.exceptions.InvalidExpressionException;
+import ru.liboskat.graphql.security.storage.TokenExpression;
 import ru.liboskat.graphql.security.storage.token.ComparisonToken;
 import ru.liboskat.graphql.security.storage.token.ComparisonToken.ComparisonType;
+import ru.liboskat.graphql.security.storage.token.ComparisonToken.ValueType;
 import ru.liboskat.graphql.security.storage.token.OperatorToken;
-import ru.liboskat.graphql.security.storage.TokenExpression;
-import ru.liboskat.graphql.security.storage.token.Token;
 
+import java.text.NumberFormat;
+import java.text.ParsePosition;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.HashSet;
+import java.time.temporal.Temporal;
+import java.time.temporal.TemporalQuery;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+
+import static ru.liboskat.graphql.security.storage.token.OperatorToken.*;
 
 /**
  * An implementation of {@link ExpressionParser} that is used to parse String access control expressions
@@ -27,32 +32,14 @@ import java.util.stream.Collectors;
 public class SimpleExpressionParser implements ExpressionParser {
     private static final Logger logger = LoggerFactory.getLogger(SimpleExpressionParser.class);
 
-    private static final int STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION = 0;
-    private static final int STATE_WAITING_OPENING_BRACKET = 1;
-    private static final int STATE_WAITING_COMPARISON_OPERATOR = 2;
-    private static final int STATE_READING_NOT_EQUALS = 3;
-    private static final int STATE_READING_LTE_OR_GTE = 4;
-    private static final int STATE_WAITING_SECOND_OPERAND = 5;
-    private static final int STATE_WAITING_IN_VALUES = 6;
-    private static final int STATE_WAITING_IN_VALUE = 7;
-    private static final int STATE_READING_IN_VALUES_STRING = 8;
-    private static final int STATE_WAITING_COMMA_OR_BRACKET = 9;
-    private static final int STATE_WAITING_COMBINING_OPERATOR_OR_CLOSING_BRACKET = 10;
-
     private static final String IN_OPERATOR = "IN";
     private static final String NOT_IN_OPERATOR = "NOT IN";
 
-    private final ThreadLocal<Integer> startPosition;
-
-    /**
-     * Creates new parser
-     */
-    public SimpleExpressionParser() {
-        startPosition = ThreadLocal.withInitial(() -> 0);
-    }
+    private ParsingState state;
 
     /**
      * Parses String access control expression
+     *
      * @param expression String access control expression
      * @return {@link TokenExpression} in infix notation
      * @throws InvalidExpressionException if expression is invalid
@@ -61,408 +48,493 @@ public class SimpleExpressionParser implements ExpressionParser {
     public TokenExpression parse(String expression) {
         logger.debug("Started parsing expression {}", expression);
 
-        int state = STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION;
-        Object firstValue = null;
-        ComparisonToken.ValueType firstValueType = null;
-        ComparisonType comparisonType = null;
-        TokenExpression tokenExpression = new TokenExpression();
-        int leftParenCount = 0;
-        int rightParenCount = 0;
-        boolean inNegated = false;
-        boolean getIFromStartPosition;
-        startPosition.set(0);
-        int i = startPosition.get();
-        char symbol;
-        while (i < expression.length()) {
-            getIFromStartPosition = false;
-            symbol = expression.charAt(i);
-            if (state == STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION) {
-                if (symbol == '$') {
-                    startPosition.set(i + 1);
-                    firstValue = readGraphQLArgumentName(expression);
-                    firstValueType = ComparisonToken.ValueType.GRAPHQL_ARGUMENT_NAME;
-                    state = STATE_WAITING_COMPARISON_OPERATOR;
-                    getIFromStartPosition = true;
-                } else if (symbol == '\'') {
-                    startPosition.set(i + 1);
-                    firstValue = readString(expression);
-                    firstValueType = ComparisonToken.ValueType.STRING;
-                    state = STATE_WAITING_COMPARISON_OPERATOR;
-                    getIFromStartPosition = true;
-                } else if (symbol == '{') {
-                    startPosition.set(i + 1);
-                    ValueAndTypeHolder valueAndTypeHolder = readObject(expression);
-                    firstValue = valueAndTypeHolder.getValue();
-                    firstValueType = valueAndTypeHolder.getValueType();
-                    state = STATE_WAITING_COMPARISON_OPERATOR;
-                    getIFromStartPosition = true;
-                } else if (Character.isJavaIdentifierStart(symbol)) {
-                    startPosition.set(i);
-                    firstValue = readGraphQLContextFieldName(expression);
-                    firstValueType = ComparisonToken.ValueType.GRAPHQL_CONTEXT_FIELD_NAME;
-                    state = STATE_WAITING_COMPARISON_OPERATOR;
-                    getIFromStartPosition = true;
-                } else if (symbol == '!') {
-                    tokenExpression.addToken(OperatorToken.NOT);
-                    state = STATE_WAITING_OPENING_BRACKET;
-                } else if (symbol == '(') {
-                    leftParenCount++;
-                    tokenExpression.addToken(OperatorToken.LEFT_PAREN);
-                } else if (symbol != ' ') {
-                    throw new InvalidExpressionException(symbol, i, "'(' / '!' / start of operand / ' '", expression);
-                }
-            } else if (state == STATE_WAITING_OPENING_BRACKET) {
-                if (symbol == '(') {
-                    leftParenCount++;
-                    tokenExpression.addToken(OperatorToken.LEFT_PAREN);
-                    state = STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION;
-                } else {
-                    logger.error("");
-                    throw new InvalidExpressionException(symbol, i, "'('", expression);
-                }
-            } else if (state == STATE_WAITING_COMPARISON_OPERATOR) {
-                if (symbol == '!') {
-                    state = STATE_READING_NOT_EQUALS;
-                } else if (symbol == '=') {
-                    comparisonType = ComparisonType.EQUALS;
-                    state = STATE_WAITING_SECOND_OPERAND;
-                } else if (symbol == '<') {
-                    comparisonType = ComparisonType.LT;
-                    state = STATE_READING_LTE_OR_GTE;
-                } else if (symbol == '>') {
-                    comparisonType = ComparisonType.GT;
-                    state = STATE_READING_LTE_OR_GTE;
-                } else if (symbol == 'N' || symbol == 'n') {
-                    startPosition.set(i);
-                    checkInExpression(expression, true);
-                    inNegated = true;
-                    getIFromStartPosition = true;
-                    state = STATE_WAITING_IN_VALUES;
-                } else if (symbol == 'I' || symbol == 'i') {
-                    startPosition.set(i);
-                    checkInExpression(expression, false);
-                    inNegated = false;
-                    getIFromStartPosition = true;
-                    state = STATE_WAITING_IN_VALUES;
-                } else if (symbol != ' ') {
-                    throw new InvalidExpressionException(symbol, i, "'=' / '!=' / 'in' / 'not in' / ' '", expression);
-                }
-            } else if (state == STATE_READING_NOT_EQUALS) {
-                if (symbol == '=') {
-                    tokenExpression.addToken(OperatorToken.NOT);
-                    comparisonType = ComparisonType.EQUALS;
-                    state = STATE_WAITING_SECOND_OPERAND;
-                } else {
-                    throw new InvalidExpressionException(symbol, i, "'='", expression);
-                }
-            } else if (state == STATE_READING_LTE_OR_GTE) {
-                if (symbol == '=' && comparisonType == ComparisonType.LT) {
-                    comparisonType = ComparisonType.LTE;
-                } else if (symbol == '=' && comparisonType == ComparisonType.GT) {
-                    comparisonType = ComparisonType.GTE;
-                } else {
-                    startPosition.set(i);
-                    getIFromStartPosition = true;
-                }
-                state = STATE_WAITING_SECOND_OPERAND;
-            } else if (state == STATE_WAITING_IN_VALUES) {
-                if (symbol == '(') {
-                    startPosition.set(i + 1);
-                    addInValues(tokenExpression, firstValue, firstValueType, readInValues(expression), inNegated);
-                    getIFromStartPosition = true;
-                    state = STATE_WAITING_COMBINING_OPERATOR_OR_CLOSING_BRACKET;
-                } else if (symbol != ' ') {
-                    throw new InvalidExpressionException(symbol, i, "'(' / ' '", expression);
-                }
-            } else if (state == STATE_WAITING_SECOND_OPERAND) {
-                if (symbol == '$') {
-                    startPosition.set(i + 1);
-                    tokenExpression.addToken(ComparisonToken.builder()
-                            .firstValue(firstValue, firstValueType)
-                            .secondValue(readGraphQLArgumentName(expression), ComparisonToken.ValueType.GRAPHQL_ARGUMENT_NAME)
-                            .comparisonType(comparisonType)
-                            .build()
-                    );
-                    state = STATE_WAITING_COMBINING_OPERATOR_OR_CLOSING_BRACKET;
-                    getIFromStartPosition = true;
-                } else if (symbol == '\'') {
-                    startPosition.set(i + 1);
-                    tokenExpression.addToken(ComparisonToken.builder()
-                            .firstValue(firstValue, firstValueType)
-                            .secondValue(readString(expression), ComparisonToken.ValueType.STRING)
-                            .comparisonType(comparisonType)
-                            .build()
-                    );
-                    state = STATE_WAITING_COMBINING_OPERATOR_OR_CLOSING_BRACKET;
-                    getIFromStartPosition = true;
-                } else if (symbol == '{') {
-                    startPosition.set(i + 1);
-                    ValueAndTypeHolder valueAndTypeHolder = readObject(expression);
-                    tokenExpression.addToken(ComparisonToken.builder()
-                            .firstValue(firstValue, firstValueType)
-                            .secondValue(valueAndTypeHolder.getValue(), valueAndTypeHolder.getValueType())
-                            .comparisonType(comparisonType)
-                            .build()
-                    );
-                    state = STATE_WAITING_COMBINING_OPERATOR_OR_CLOSING_BRACKET;
-                    getIFromStartPosition = true;
-                } else if (Character.isJavaIdentifierStart(symbol)) {
-                    startPosition.set(i);
-                    tokenExpression.addToken(ComparisonToken.builder()
-                            .firstValue(firstValue, firstValueType)
-                            .secondValue(readGraphQLContextFieldName(expression),
-                                    ComparisonToken.ValueType.GRAPHQL_CONTEXT_FIELD_NAME)
-                            .comparisonType(comparisonType)
-                            .build()
-                    );
-                    state = STATE_WAITING_COMBINING_OPERATOR_OR_CLOSING_BRACKET;
-                    getIFromStartPosition = true;
-                } else if (symbol != ' ') {
-                    throw new InvalidExpressionException(symbol, i, "start of operand / ' '", expression);
-                }
-            } else if (state == STATE_WAITING_COMBINING_OPERATOR_OR_CLOSING_BRACKET) {
-                if (symbol == ')') {
-                    rightParenCount++;
-                    if (rightParenCount > leftParenCount) {
-                        throw new InvalidExpressionException("Matching left paren not found ", i, expression);
-                    }
-                    tokenExpression.addToken(OperatorToken.RIGHT_PAREN);
-                } else if (symbol == '&') {
-                    tokenExpression.addToken(OperatorToken.AND);
-                    state = STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION;
-                } else if (symbol == '|') {
-                    tokenExpression.addToken(OperatorToken.OR);
-                    state = STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION;
-                } else if (symbol != ' ') {
-                    throw new InvalidExpressionException(symbol, i, "')' / '&' / '|' / ' '", expression);
-                }
-            } else {
-                throw new InternalErrorException(String.format("Illegal state %d", state));
-            }
-            if (getIFromStartPosition) {
-                i = startPosition.get();
-            } else {
-                i++;
-            }
-        }
-        if (state != STATE_WAITING_COMBINING_OPERATOR_OR_CLOSING_BRACKET &&
-                (!expression.isEmpty() || state != STATE_WAITING_FIRST_OPERAND_OR_OPENING_BRACKET_OR_NEGATION)) {
-            throw new InvalidExpressionException("Illegal expression", expression);
-        }
-        if (leftParenCount != rightParenCount) {
+        state = new ParsingState(expression);
+        waitFirstOperandOrLeftParenthesesOrNegation();
+        
+        if (state.leftParenthesesCount != state.rightParenthesesCount) {
             throw new InvalidExpressionException(
-                    String.format("%d parens is unclosed", leftParenCount - rightParenCount), expression);
+                    String.format("%d parens is unclosed",
+                            state.leftParenthesesCount - state.rightParenthesesCount), expression);
         }
 
         logger.debug("Ended parsing expression {}", expression);
-        return tokenExpression;
+        return state.result;
     }
 
-    private String readGraphQLArgumentName(String expression) {
-        boolean valueReadingEnded = false;
-        StringBuilder nameBuilder = new StringBuilder();
-        for (int i = startPosition.get(); i < expression.length() && !valueReadingEnded; i++) {
-            char symbol = expression.charAt(i);
-            if ((nameBuilder.length() == 0 && isGraphQLNameStart(symbol)) ||
-                    (nameBuilder.length() > 0 && isGraphQLNamePart(symbol))) {
-                nameBuilder.append(symbol);
-            } else {
-                startPosition.set(i);
-                valueReadingEnded = true;
+    private void waitFirstOperandOrLeftParenthesesOrNegation() {
+        Optional<Character> currentCharOptional = state.getCurrentChar();
+        if (!currentCharOptional.isPresent()) {
+            if (!state.result.isEmpty()) {
+                throw new InvalidExpressionException("Illegal expression", state.expression);
             }
+            return;
         }
-        String name = nameBuilder.toString();
-        if (name.isEmpty()) {
-            throw new InvalidExpressionException("Argument name is empty", startPosition.get(), expression);
+
+        char currentChar = currentCharOptional.get();
+        if (currentChar == '(') {
+            state.leftParenthesesCount++;
+            state.result.addToken(LEFT_PARENTHESIS);
+            state.currentPosition++;
+            waitFirstOperandOrLeftParenthesesOrNegation();
+        } else if (currentChar == '!') {
+            state.result.addToken(NOT);
+            state.currentPosition++;
+            waitLeftParenthesis();
+        } else if (currentChar == ' ') {
+            state.currentPosition++;
+            waitFirstOperandOrLeftParenthesesOrNegation();
+        } else if (currentChar == '\'') {
+            state.leftOperandState = new OperandState();
+            state.currentPosition++;
+            readStringOperand(true);
+        } else if (currentChar == '{') {
+            state.leftOperandState = new OperandState();
+            state.currentPosition++;
+            readObjectOperand(true);
+        } else if (currentChar == '$') {
+            state.leftOperandState = new OperandState();
+            state.currentPosition++;
+            readGraphQLArgumentNameOperand(true);
+        } else if (Character.isJavaIdentifierStart(currentChar)) {
+            state.leftOperandState = new OperandState();
+            readContextFieldNameOperand(true);
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition,
+                    "'(' / '!' / start of operand / ' '", state.expression);
         }
-        if (!valueReadingEnded) {
-            startPosition.set(expression.length());
-        }
-        return name;
     }
 
-    private String readGraphQLContextFieldName(String expression) {
-        boolean valueReadingEnded = false;
-        StringBuilder nameBuilder = new StringBuilder();
-        for (int i = startPosition.get(); i < expression.length() && !valueReadingEnded; i++) {
-            char symbol = expression.charAt(i);
-            if ((nameBuilder.length() == 0 && Character.isJavaIdentifierStart(symbol)) ||
-                    (nameBuilder.length() > 0 && Character.isJavaIdentifierPart(symbol))) {
-                nameBuilder.append(symbol);
-            } else {
-                startPosition.set(i);
-                valueReadingEnded = true;
-            }
+    private void waitLeftParenthesis() {
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == '(') {
+            state.leftParenthesesCount++;
+            state.result.addToken(LEFT_PARENTHESIS);
+            state.currentPosition++;
+            waitFirstOperandOrLeftParenthesesOrNegation();
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition, "'('",
+                    state.expression);
         }
-        String name = nameBuilder.toString();
-        if (name.isEmpty()) {
-            throw new InvalidExpressionException("Context field name is empty", startPosition.get(), expression);
-        }
-        if (!valueReadingEnded) {
-            startPosition.set(expression.length());
-        }
-        return name;
     }
 
-    private String readString(String expression) {
-        boolean valueReadingEnded = false;
-        boolean escapeNext = false;
-        StringBuilder name = new StringBuilder();
-        for (int i = startPosition.get(); i < expression.length() && !valueReadingEnded; i++) {
-            char symbol = expression.charAt(i);
-            if (symbol == '\'' && !escapeNext) {
-                startPosition.set(i + 1);
-                valueReadingEnded = true;
-            } else if (symbol == '\\' && !escapeNext) {
-                escapeNext = true;
-            } else {
-                name.append(symbol);
-                escapeNext = false;
-            }
+    private void readStringOperand(boolean isLeft) {
+        OperandState operandState = isLeft ? state.leftOperandState :
+                state.rightOperandState;
+        StringBuilder valueBuilder = operandState.valueBuilder;
+
+        char currentChar = getCurrentCharOrElseThrow();
+        if (!operandState.escapeNextChar && currentChar == '\'') {
+            operandState.resultValueType = ValueType.STRING;
+            operandState.resultValue = valueBuilder.toString();
+            state.currentPosition++;
+            endOperandReading(isLeft);
+        } else if (!operandState.escapeNextChar && currentChar == '\\') {
+            operandState.escapeNextChar = true;
+            state.currentPosition++;
+            readStringOperand(isLeft);
+        } else {
+            operandState.escapeNextChar = false;
+            valueBuilder.append(currentChar);
+            state.currentPosition++;
+            readStringOperand(isLeft);
         }
-        if (!valueReadingEnded) {
-            throw new InvalidExpressionException("String is not closed", expression.length() - 1, expression);
-        }
-        return name.toString();
     }
 
-    private ValueAndTypeHolder readObject(String expression) {
-        boolean valueReadingEnded = false;
-        StringBuilder stringValueBuilder = new StringBuilder();
-        int beforeReadingPosition = startPosition.get();
-        for (int i = beforeReadingPosition; i < expression.length() && !valueReadingEnded; i++) {
-            char symbol = expression.charAt(i);
-            if (symbol == '}') {
-                startPosition.set(i + 1);
-                valueReadingEnded = true;
+    private void readObjectOperand(boolean isLeft) {
+        OperandState operandState = isLeft ? state.leftOperandState :
+                state.rightOperandState;
+        StringBuilder valueBuilder = operandState.valueBuilder;
+
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == '}') {
+            parseAndSaveObject(operandState);
+            state.currentPosition++;
+            endOperandReading(isLeft);
+        } else {
+            valueBuilder.append(currentChar);
+            state.currentPosition++;
+            readObjectOperand(isLeft);
+        }
+    }
+
+    private void readGraphQLArgumentNameOperand(boolean isLeft) {
+        readVariableNameOperand(isLeft, true);
+    }
+
+    private void readContextFieldNameOperand(boolean isLeft) {
+        readVariableNameOperand(isLeft, false);
+    }
+
+    private void waitComparisonOperator() {
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == '!') {
+            state.currentPosition++;
+            readNotEquals();
+        } else if (currentChar == '=') {
+            state.operandComparisonType = ComparisonType.EQUALS;
+            state.currentPosition++;
+            waitRightOperand();
+        } else if (currentChar == '<') {
+            state.operandComparisonType = ComparisonType.LT;
+            state.currentPosition++;
+            readLteOrGte();
+        } else if (currentChar == '>') {
+            state.operandComparisonType = ComparisonType.GT;
+            state.currentPosition++;
+            readLteOrGte();
+        } else if (currentChar == 'N' || currentChar == 'n') {
+            state.inValuesState = new InValuesState();
+            state.inValuesState.negated = true;
+            checkInOperator();
+        } else if (currentChar == 'I' || currentChar == 'i') {
+            state.inValuesState = new InValuesState();
+            state.inValuesState.negated = false;
+            checkInOperator();
+        } else if (currentChar == ' ') {
+            state.currentPosition++;
+            waitComparisonOperator();
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition,
+                    "'=' / '!=' / 'in' / 'not in' / ' '", state.expression);
+        }
+    }
+
+    private void readNotEquals() {
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == '=') {
+            state.result.addToken(NOT);
+            state.operandComparisonType = ComparisonType.EQUALS;
+            state.currentPosition++;
+            waitRightOperand();
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition, "'='",
+                    state.expression);
+        }
+    }
+
+    private void readLteOrGte() {
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == '=') {
+            if (state.operandComparisonType == ComparisonType.LT) {
+                state.operandComparisonType = ComparisonType.LTE;
             } else {
-                stringValueBuilder.append(symbol);
+                state.operandComparisonType = ComparisonType.GTE;
             }
+            state.currentPosition++;
         }
-        if (!valueReadingEnded) {
-            throw new InvalidExpressionException("Object is not closed", expression.length() - 1, expression);
+        waitRightOperand();
+    }
+
+    private void checkInOperator() {
+        InValuesState inValuesState = state.inValuesState;
+        String correctOperator = inValuesState.negated ? NOT_IN_OPERATOR : IN_OPERATOR;
+
+        char currentChar = getCurrentCharOrElseThrow();
+        if (inValuesState.operatorSymbolsRead < correctOperator.length() &&
+                currentChar == correctOperator.charAt(inValuesState.operatorSymbolsRead)) {
+            inValuesState.operatorSymbolsRead++;
+            state.currentPosition++;
+            checkInOperator();
+        } else if (inValuesState.operatorSymbolsRead == correctOperator.length()) {
+            state.currentPosition++;
+            waitInValues();
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition,
+                    String.format("'%c'", correctOperator.charAt(inValuesState.operatorSymbolsRead)),
+                    state.expression);
         }
-        String stringValue = stringValueBuilder.toString().trim();
+    }
+
+    private void waitInValues() {
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == '(') {
+            state.currentPosition++;
+            waitInValue();
+        } else if (currentChar == ' ') {
+            state.currentPosition++;
+            waitInValues();
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition, "'(' / ' '",
+                    state.expression);
+        }
+    }
+
+    private void waitInValue() {
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == '\'') {
+            state.inValuesState.inValueBuilder = new StringBuilder();
+            state.currentPosition++;
+            readInValue();
+        } else if (currentChar == ' ') {
+            state.currentPosition++;
+            waitInValue();
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition, "'", state.expression);
+        }
+    }
+
+    private void readInValue() {
+        InValuesState inValuesState = state.inValuesState;
+        StringBuilder inValueBuilder = inValuesState.inValueBuilder;
+
+        char currentChar = getCurrentCharOrElseThrow();
+        if (!inValuesState.escapeNextChar && currentChar == '\'') {
+            inValuesState.inValues.add(inValueBuilder.toString());
+            state.currentPosition++;
+            waitCommaOrRightParenthesis();
+        } else if (!inValuesState.escapeNextChar && currentChar == '\\') {
+            inValuesState.escapeNextChar = true;
+            state.currentPosition++;
+            readInValue();
+        } else {
+            inValuesState.escapeNextChar = false;
+            inValueBuilder.append(currentChar);
+            state.currentPosition++;
+            readInValue();
+        }
+    }
+
+    private void waitCommaOrRightParenthesis() {
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == ',') {
+            state.currentPosition++;
+            waitInValue();
+        } else if (currentChar == ')') {
+            state.currentPosition++;
+            endInReading();
+        } else if (currentChar == ' ') {
+            waitCommaOrRightParenthesis();
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition, "',' / ')' / ' '",
+                    state.expression);
+        }
+    }
+
+    private void waitRightOperand() {
+        char currentChar = getCurrentCharOrElseThrow();
+        if (currentChar == ' ') {
+            state.currentPosition++;
+            waitRightOperand();
+        } else if (currentChar == '\'') {
+            state.rightOperandState = new OperandState();
+            state.currentPosition++;
+            readStringOperand(false);
+        } else if (currentChar == '{') {
+            state.rightOperandState = new OperandState();
+            state.currentPosition++;
+            readObjectOperand(false);
+        } else if (currentChar == '$') {
+            state.rightOperandState = new OperandState();
+            state.currentPosition++;
+            readGraphQLArgumentNameOperand(false);
+        } else if (Character.isJavaIdentifierStart(currentChar)) {
+            state.rightOperandState = new OperandState();
+            readContextFieldNameOperand(false);
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition, "start of operand / ' '",
+                    state.expression);
+        }
+    }
+
+    private void waitCombiningOperatorOrRightParenthesis() {
+        Optional<Character> currentCharOptional = state.getCurrentChar();
+        if (!currentCharOptional.isPresent()) {
+            return;
+        }
+
+        char currentChar = currentCharOptional.get();
+        if (currentChar == ')') {
+            state.rightParenthesesCount++;
+            if (state.rightParenthesesCount > state.leftParenthesesCount) {
+                throw new InvalidExpressionException("Matching left paren not found ", state.currentPosition,
+                        state.expression);
+            }
+            state.result.addToken(OperatorToken.RIGHT_PARENTHESIS);
+            state.currentPosition++;
+            waitCombiningOperatorOrRightParenthesis();
+        } else if (currentChar == '&') {
+            state.result.addToken(AND);
+            state.currentPosition++;
+            waitFirstOperandOrLeftParenthesesOrNegation();
+        } else if (currentChar == '|') {
+            state.result.addToken(OR);
+            state.currentPosition++;
+            waitFirstOperandOrLeftParenthesesOrNegation();
+        } else if (currentChar == ' ') {
+            state.currentPosition++;
+            waitCombiningOperatorOrRightParenthesis();
+        } else {
+            throw new InvalidExpressionException(currentChar, state.currentPosition, "')' / '&' / '|' / ' '",
+                    state.expression);
+        }
+    }
+
+    private void readVariableNameOperand(boolean isLeft, boolean isArgumentName) {
+        OperandState operandState = isLeft ? state.leftOperandState :
+                state.rightOperandState;
+        StringBuilder nameBuilder = operandState.valueBuilder;
+
+        Optional<Character> currentCharOptional = state.getCurrentChar();
+        if (!currentCharOptional.isPresent() && !isLeft) {
+            endVariableNameReading(isArgumentName, false);
+            return;
+        } else if (!currentCharOptional.isPresent()) {
+            throw new InvalidExpressionException("Illegal expression", state.expression);
+        }
+
+        char currentChar = currentCharOptional.get();
+        if (checkIsVariableNamePossibleCharacter(currentChar, isArgumentName, nameBuilder.length())) {
+            nameBuilder.append(currentChar);
+            state.currentPosition++;
+            readVariableNameOperand(isLeft, isArgumentName);
+        } else {
+            if (nameBuilder.length() == 0) {
+                throw new InvalidExpressionException("Context field name is empty", state.currentPosition,
+                        state.expression);
+            }
+            endVariableNameReading(isArgumentName, isLeft);
+        }
+    }
+
+    private boolean checkIsVariableNamePossibleCharacter(char character, boolean isArgumentName, int position) {
+        if (isArgumentName) {
+            return position == 0 && isGraphQLNameStart(character) ||
+                    position > 0 && isGraphQLNamePart(character);
+        } else {
+            return position == 0 && Character.isJavaIdentifierStart(character) ||
+                    position > 0 && Character.isJavaIdentifierPart(character);
+        }
+    }
+
+    private void endVariableNameReading(boolean isArgumentName, boolean isLeft) {
+        OperandState operandState = isLeft ? state.leftOperandState :
+                state.rightOperandState;
+        operandState.resultValue = operandState.valueBuilder.toString();
+        operandState.resultValueType = isArgumentName ? ValueType.GRAPHQL_ARGUMENT_NAME :
+                ValueType.GRAPHQL_CONTEXT_FIELD_NAME;
+        endOperandReading(isLeft);
+    }
+
+    private void endOperandReading(boolean isLeft) {
+        if (!isLeft) {
+            addParsedOperandComparison();
+            waitCombiningOperatorOrRightParenthesis();
+        } else {
+            waitComparisonOperator();
+        }
+    }
+
+    private void endInReading() {
+        InValuesState inValuesState = state.inValuesState;
+        OperatorToken operator = inValuesState.negated ? AND : OR;
+        boolean addParentheses = inValuesState.inValues.size() > 1;
+
+        if (addParentheses)  {
+            state.result.addToken(LEFT_PARENTHESIS);
+        }
+        inValuesState.inValues.stream().findFirst().ifPresent(this::addInValueComparison);
+        inValuesState.inValues.stream().skip(1).forEachOrdered(inValue -> {
+            state.result.addToken(operator);
+            addInValueComparison(inValue);
+        });
+        if (addParentheses)  {
+            state.result.addToken(RIGHT_PARENTHESIS);
+        }
+        waitCombiningOperatorOrRightParenthesis();
+    }
+
+    private void addInValueComparison(String inValue) {
+        OperandState firstValue = state.leftOperandState;
+        ComparisonToken comparisonToken = ComparisonToken.builder()
+                .firstValue(firstValue.resultValue, firstValue.resultValueType)
+                .secondValue(inValue, ValueType.STRING)
+                .comparisonType(ComparisonType.EQUALS)
+                .build();
+        if (state.inValuesState.negated) {
+            state.result.addToken(NOT);
+        }
+        state.result.addToken(comparisonToken);
+    }
+
+    private void parseAndSaveObject(OperandState readingObjectState) {
+        String stringValue = readingObjectState.valueBuilder.toString().trim();
         if (stringValue.isEmpty()) {
-            throw new InvalidExpressionException("Object is empty", beforeReadingPosition, expression);
+            throw new InvalidExpressionException("Object is empty", state.currentPosition,
+                    state.expression);
         }
+
         if ("null".equals(stringValue)) {
-            return new ValueAndTypeHolder(ComparisonToken.NullValue.INSTANCE, ComparisonToken.ValueType.NULL);
+            readingObjectState.resultValue = ComparisonToken.NullValue.INSTANCE;
+            readingObjectState.resultValueType = ValueType.NULL;
+            return;
         }
         if ("true".equals(stringValue)) {
-            return new ValueAndTypeHolder(Boolean.TRUE, ComparisonToken.ValueType.BOOLEAN);
+            readingObjectState.resultValue = Boolean.TRUE;
+            readingObjectState.resultValueType = ValueType.BOOLEAN;
+            return;
         }
         if ("false".equals(stringValue)) {
-            return new ValueAndTypeHolder(Boolean.FALSE, ComparisonToken.ValueType.BOOLEAN);
+            readingObjectState.resultValue = Boolean.FALSE;
+            readingObjectState.resultValueType = ValueType.BOOLEAN;
+            return;
         }
-        Optional<ValueAndTypeHolder> temporalOptional = tryGetTemporal(stringValue);
-        if (temporalOptional.isPresent()) {
-            return temporalOptional.get();
+
+        Optional<ZonedDateTime> zonedDateTime =
+                tryParseDateTime(stringValue, ZonedDateTime::from, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+        if (zonedDateTime.isPresent()) {
+            readingObjectState.resultValue = zonedDateTime.get();
+            readingObjectState.resultValueType = ValueType.ZONED_DATE_TIME;
+            return;
         }
-        Optional<ValueAndTypeHolder> numberOptional = tryGetNumber(stringValue);
+        Optional<LocalDateTime> localDateTime =
+                tryParseDateTime(stringValue, LocalDateTime::from, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        if (localDateTime.isPresent()) {
+            readingObjectState.resultValue = localDateTime.get();
+            readingObjectState.resultValueType = ValueType.LOCAL_DATE_TIME;
+            return;
+        }
+        Optional<LocalDate> localDate =
+                tryParseDateTime(stringValue, LocalDate::from, DateTimeFormatter.ISO_LOCAL_DATE);
+        if (localDate.isPresent()) {
+            readingObjectState.resultValue = localDate.get();
+            readingObjectState.resultValueType = ValueType.LOCAL_DATE;
+            return;
+        }
+        Optional<LocalTime> localTime = tryParseDateTime(stringValue, LocalTime::from, DateTimeFormatter.ISO_LOCAL_TIME);
+        if (localTime.isPresent()) {
+            readingObjectState.resultValue = localTime.get();
+            readingObjectState.resultValueType = ValueType.LOCAL_TIME;
+            return;
+        }
+
+        Optional<Number> numberOptional = tryParseNumber(stringValue);
         if (numberOptional.isPresent()) {
-            return numberOptional.get();
+            Number number = numberOptional.get();
+            readingObjectState.resultValue = number;
+            readingObjectState.resultValueType = getNumberValueType(number);
+            return;
         }
-        throw new InvalidExpressionException("Object can't be parsed", beforeReadingPosition, expression);
-    }
 
-    private void checkInExpression(String expression, boolean negated) {
-        String operator = negated ? NOT_IN_OPERATOR : IN_OPERATOR;
-        boolean operatorReadingEnded = false;
-        int symbolsRead = 0;
-        for (int i = startPosition.get(); i < expression.length() && !operatorReadingEnded; i++) {
-            char symbol = Character.toUpperCase(expression.charAt(i));
-            if (symbolsRead < operator.length() && symbol == operator.charAt(symbolsRead)) {
-                symbolsRead++;
-            } else if (symbolsRead == operator.length()) {
-                startPosition.set(i);
-                operatorReadingEnded = true;
-            } else {
-                throw new InvalidExpressionException(
-                        symbol, i, String.format("'%c'", operator.charAt(symbolsRead)), expression);
-            }
-        }
-        if (!operatorReadingEnded) {
-            throw new InvalidExpressionException(
-                    String.format("Incomplete %s expression", operator), expression.length() - 1, expression);
+        if (readingObjectState.resultValue == null) {
+            throw new InvalidExpressionException("Object can't be parsed", state.currentPosition,
+                    state.expression);
         }
     }
 
-    private Set<String> readInValues(String expression) {
-        Set<String> inValues = new HashSet<>();
-        int state = STATE_WAITING_IN_VALUE;
-        boolean readingEnded = false;
-        StringBuilder value = new StringBuilder();
-        for (int i = startPosition.get(); i < expression.length() && !readingEnded; i++) {
-            char symbol = expression.charAt(i);
-            if (state == STATE_WAITING_IN_VALUE) {
-                if (symbol == '\'') {
-                    state = STATE_READING_IN_VALUES_STRING;
-                } else if (symbol != ' ') {
-                    throw new InvalidExpressionException(symbol, i, "\' / ' '", expression);
-                }
-            } else if (state == STATE_READING_IN_VALUES_STRING) {
-                if (symbol == '\'') {
-                    inValues.add(value.toString());
-                    value = new StringBuilder();
-                    state = STATE_WAITING_COMMA_OR_BRACKET;
-                } else {
-                    value.append(symbol);
-                }
-            } else if (state == STATE_WAITING_COMMA_OR_BRACKET) {
-                if (symbol == ',') {
-                    state = STATE_WAITING_IN_VALUE;
-                } else if (symbol == ')') {
-                    startPosition.set(i + 1);
-                    readingEnded = true;
-                } else if (symbol != ' ') {
-                    throw new InvalidExpressionException(symbol, i, "',' / ')' / ' '", expression);
-                }
-            } else {
-                throw new InternalErrorException(String.format("Illegal state %d", state));
-            }
-        }
-        if (!readingEnded) {
-            throw new InvalidExpressionException("Values didn't closed", expression.length() - 1, expression);
-        }
-        return inValues;
+    private void addParsedOperandComparison() {
+        OperandState firstValue = state.leftOperandState;
+        OperandState secondValue = state.rightOperandState;
+        ComparisonToken comparisonToken = ComparisonToken.builder()
+                .firstValue(firstValue.resultValue, firstValue.resultValueType)
+                .secondValue(secondValue.resultValue, secondValue.resultValueType)
+                .comparisonType(state.operandComparisonType)
+                .build();
+        state.result.addToken(comparisonToken);
     }
 
-    private void addInValues(TokenExpression tokenExpression, Object firstValue, ComparisonToken.ValueType firstValueType,
-                             Set<String> inValues, boolean negated) {
-        List<Token> equalityTokens = inValues.stream()
-                .map(inValue -> ComparisonToken.builder()
-                        .firstValue(firstValue, firstValueType)
-                        .secondValue(inValue, ComparisonToken.ValueType.STRING)
-                        .comparisonType(ComparisonType.EQUALS)
-                        .build())
-                .collect(Collectors.toList());
-        boolean addParentheses = equalityTokens.size() > 1;
-        if (addParentheses) {
-            tokenExpression.addToken(OperatorToken.LEFT_PAREN);
-        }
-        equalityTokens.stream()
-                .findFirst()
-                .ifPresent(token -> {
-                    if (negated) {
-                        tokenExpression.addToken(OperatorToken.NOT);
-                    }
-                    tokenExpression.addToken(token);
-                });
-        equalityTokens.stream()
-                .skip(1)
-                .forEach(token -> {
-                    if (negated) {
-                        tokenExpression.addToken(OperatorToken.AND);
-                        tokenExpression.addToken(OperatorToken.NOT);
-                    } else {
-                        tokenExpression.addToken(OperatorToken.OR);
-                    }
-                    tokenExpression.addToken(token);
-                });
-        if (addParentheses) {
-            tokenExpression.addToken(OperatorToken.RIGHT_PAREN);
-        }
+    private char getCurrentCharOrElseThrow() {
+        return state.getCurrentChar().orElseThrow(() ->
+                new InvalidExpressionException("Illegal expression", state.expression));
     }
 
     private static boolean isGraphQLNameStart(char symbol) {
@@ -473,53 +545,81 @@ public class SimpleExpressionParser implements ExpressionParser {
         return isGraphQLNameStart(symbol) || (symbol >= '0' && symbol <= '9');
     }
 
-    private Optional<ValueAndTypeHolder> tryGetTemporal(String value) {
+    private <T extends Temporal> Optional<T> tryParseDateTime(String value, TemporalQuery<T> temporalQuery,
+                                                              DateTimeFormatter formatter) {
         try {
-            return Optional.of(ZonedDateTime.parse(value))
-                    .map(zonedDateTime -> new ValueAndTypeHolder(zonedDateTime, ComparisonToken.ValueType.ZONED_DATE_TIME));
-        } catch (DateTimeParseException ignored) { }
-        try {
-            return Optional.of(LocalDateTime.parse(value))
-                    .map(localDateTime -> new ValueAndTypeHolder(localDateTime, ComparisonToken.ValueType.LOCAL_DATE_TIME));
-        } catch (DateTimeParseException ignored) { }
-        try {
-            return Optional.of(LocalDate.parse(value))
-                    .map(localDate -> new ValueAndTypeHolder(localDate, ComparisonToken.ValueType.LOCAL_DATE));
-        } catch (DateTimeParseException ignored) { }
-        try {
-            return Optional.of(LocalTime.parse(value))
-                    .map(localTime -> new ValueAndTypeHolder(localTime, ComparisonToken.ValueType.LOCAL_TIME));
-        } catch (DateTimeParseException ignored) { }
-        return Optional.empty();
+            return Optional.of(formatter.parse(value, temporalQuery));
+        } catch (DateTimeParseException exception) {
+            return Optional.empty();
+        }
     }
 
-    private Optional<ValueAndTypeHolder> tryGetNumber(String value) {
-        try {
-            return Optional.of(Long.parseLong(value))
-                    .map(longValue -> new ValueAndTypeHolder(longValue, ComparisonToken.ValueType.INTEGER));
-        } catch (NumberFormatException ignored) { }
-        try {
-            return Optional.of(Double.parseDouble(value))
-                    .map(doubleValue -> new ValueAndTypeHolder(doubleValue, ComparisonToken.ValueType.REAL));
-        } catch (NumberFormatException ignored) { }
-        return Optional.empty();
+    private Optional<Number> tryParseNumber(String value) {
+        ParsePosition position = new ParsePosition(0);
+        Number number = NumberFormat.getInstance(Locale.US).parse(value, position);
+        if (position.getIndex() != value.length()) {
+            return Optional.empty();
+        }
+        return Optional.of(number);
     }
 
-    private static class ValueAndTypeHolder {
-        private final Object value;
-        private final ComparisonToken.ValueType valueType;
+    private ValueType getNumberValueType(Number number) {
+        if (number instanceof Long) {
+            return ValueType.INTEGER;
+        } else {
+            return ValueType.REAL;
+        }
+    }
 
-        private ValueAndTypeHolder(Object value, ComparisonToken.ValueType valueType) {
-            this.value = value;
-            this.valueType = valueType;
+    private static class ParsingState {
+        final String expression;
+        final int expressionLength;
+        int currentPosition;
+        int leftParenthesesCount;
+        int rightParenthesesCount;
+        OperandState leftOperandState;
+        OperandState rightOperandState;
+        InValuesState inValuesState;
+        ComparisonType operandComparisonType;
+        TokenExpression result;
+
+        ParsingState(String expression) {
+            this.expression = expression;
+            this.expressionLength = expression.length();
+            this.currentPosition = 0;
+            this.leftParenthesesCount = 0;
+            this.rightParenthesesCount = 0;
+            this.result = new TokenExpression();
         }
 
-        private Object getValue() {
-            return value;
+        Optional<Character> getCurrentChar() {
+            if (currentPosition >= expressionLength) {
+                return Optional.empty();
+            }
+            return Optional.of(expression.charAt(currentPosition));
         }
+    }
 
-        private ComparisonToken.ValueType getValueType() {
-            return valueType;
+    private static class OperandState {
+        StringBuilder valueBuilder;
+        Object resultValue;
+        ValueType resultValueType;
+        boolean escapeNextChar;
+
+        public OperandState() {
+            valueBuilder = new StringBuilder();
+        }
+    }
+
+    private static class InValuesState {
+        boolean negated;
+        int operatorSymbolsRead;
+        StringBuilder inValueBuilder;
+        boolean escapeNextChar;
+        List<String> inValues;
+
+        public InValuesState() {
+            inValues = new ArrayList<>();
         }
     }
 }

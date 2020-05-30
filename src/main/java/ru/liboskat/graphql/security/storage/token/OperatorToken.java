@@ -4,8 +4,8 @@ package ru.liboskat.graphql.security.storage.token;
  * An implementation of {@link Token} that is used to store information about operator
  */
 public enum OperatorToken implements Token {
-    LEFT_PAREN("("),
-    RIGHT_PAREN(")"),
+    LEFT_PARENTHESIS("("),
+    RIGHT_PARENTHESIS(")"),
     AND(2, "&"),
     OR(1, "|"),
     NOT(3, "!");
