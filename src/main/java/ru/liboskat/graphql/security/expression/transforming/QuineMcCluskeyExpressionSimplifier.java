@@ -269,7 +269,7 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
      * @param notMatchableMinterms некомбинируемые минтермы
      * @return если число пересечений с некомбинируемыми минтермами = 1,
      * возвращаем {@link Optional} с импликантом - некомбинируемым минтермом,
-     * иначе возвращаем пустой {@link Optional}
+     * иначе возвращаем {@link Optional#empty()}
      */
     private Optional<Minterm> getMintermWithUniqueCross(int indexOfInitialTrueMinterm,
                                                         Set<Minterm> notMatchableMinterms) {

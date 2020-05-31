@@ -722,8 +722,9 @@ public class SimpleExpressionParser implements ExpressionParser {
      * @param value строка с датой/временем
      * @param temporalQuery temporalQuery необходимого типа java.time
      * @param formatter dateTimeFormatter для преобразования строки в необходимый тип
-     * @param <T> тип java.time (ZonedDateTime, LocalDateTime, LocalTime, LocalDate)
-     * @return Optional с полученным значением даты/времени или пустой Optional в случае неудачного преобразования
+     * @param <T> тип java.time ({@link ZonedDateTime}, {@link LocalDateTime}, {@link LocalTime}, {@link LocalDate})
+     * @return {@link Optional} с полученным значением даты/времени
+     * или {@link Optional#empty()} в случае неудачного преобразования
      */
     private <T extends Temporal> Optional<T> tryParseDateTime(String value, TemporalQuery<T> temporalQuery,
                                                               DateTimeFormatter formatter) {
@@ -737,7 +738,8 @@ public class SimpleExpressionParser implements ExpressionParser {
     /**
      * Метод для получения числа из строки
      * @param value строка с числом
-     * @return Optional с полученным значением числа (Long или Double) или пустой Optional в случае неудачного преобразования
+     * @return {@link Optional} с полученным значением числа ({@link Long} или {@link Double})
+     * или {@link Optional#empty()} в случае неудачного преобразования
      */
     private Optional<Number> tryParseNumber(String value) {
         ParsePosition position = new ParsePosition(0);
@@ -826,7 +828,7 @@ public class SimpleExpressionParser implements ExpressionParser {
         }
 
         /**
-         * @return Optional с символом по текущему индексу, или пустой Optional, если строка закончилась
+         * @return {@link Optional} с символом по текущему индексу, или {@link Optional#empty()}, если строка закончилась
          */
         Optional<Character> getCurrentChar() {
             if (currentPosition >= expressionLength) {
