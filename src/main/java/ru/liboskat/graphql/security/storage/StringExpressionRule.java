@@ -2,6 +2,9 @@ package ru.liboskat.graphql.security.storage;
 
 import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
 
+/**
+ * todo javadoc
+ */
 public class StringExpressionRule {
     private final String readRule;
     private final String writeRule;

@@ -2,6 +2,9 @@ package ru.liboskat.graphql.security.storage;
 
 import ru.liboskat.graphql.security.storage.ruletarget.RuleTargetInfo;
 
+/**
+ * todo javadoc
+ */
 public class TokenExpressionRule {
     private final TokenExpression readRule;
     private final TokenExpression writeRule;

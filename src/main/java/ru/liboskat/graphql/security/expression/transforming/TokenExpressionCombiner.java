@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Интерфейс, используемый для объединения выражений {@link TokenExpression}
+ * Интерфейс, используемый для создания классов, нужных для объединения выражений {@link TokenExpression}
  */
 public interface TokenExpressionCombiner {
     /**

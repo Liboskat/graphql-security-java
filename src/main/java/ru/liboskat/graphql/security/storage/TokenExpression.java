@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * todo javadoc
+ */
 public class TokenExpression {
     private final List<Token> tokens;
 

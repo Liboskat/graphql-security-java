@@ -5,7 +5,7 @@ import ru.liboskat.graphql.security.storage.TokenExpression;
 import java.util.Map;
 
 /**
- * Интерфейс для реализации классов, решающих выражения {@link TokenExpression}
+ * Интерфейс для создания классов, решающих выражения {@link TokenExpression}
  */
 public interface TokenExpressionSolver {
     /**

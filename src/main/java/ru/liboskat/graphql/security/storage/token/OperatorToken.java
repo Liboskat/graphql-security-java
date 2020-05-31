@@ -1,5 +1,8 @@
 package ru.liboskat.graphql.security.storage.token;
 
+/**
+ * todo javadoc
+ */
 public enum OperatorToken implements Token {
     LEFT_PARENTHESIS("("),
     RIGHT_PARENTHESIS(")"),

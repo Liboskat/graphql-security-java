@@ -4,6 +4,9 @@ import java.util.Objects;
 
 import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
 
+/**
+ * todo javadoc
+ */
 public class InputFieldInfo implements RuleTargetInfo {
     private final String inputTypeName;
     private final String fieldName;

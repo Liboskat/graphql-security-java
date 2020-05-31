@@ -1,5 +1,8 @@
 package ru.liboskat.graphql.security.storage.ruletarget;
 
+/**
+ * todo javadoc
+ */
 public class SchemaInfo implements RuleTargetInfo {
     private SchemaInfo() {}
 

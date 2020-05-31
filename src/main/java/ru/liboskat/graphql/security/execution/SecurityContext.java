@@ -6,6 +6,7 @@ import java.util.Map;
 import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
 
 /**
+ * //toDo javadoc
  * Используется для хранения контекста, используемого при проверке выражений контроля доступа
  */
 public class SecurityContext {

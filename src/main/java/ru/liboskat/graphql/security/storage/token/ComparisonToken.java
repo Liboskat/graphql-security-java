@@ -8,6 +8,9 @@ import java.time.LocalTime;
 import java.time.temporal.Temporal;
 import java.util.Objects;
 
+/**
+ * todo javadoc
+ */
 public class ComparisonToken implements Token {
     private final Object firstValue;
     private final Object secondValue;

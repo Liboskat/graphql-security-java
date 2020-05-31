@@ -25,15 +25,19 @@ public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
     @Override
     public TokenExpression convertToRpn(TokenExpression tokenExpression) {
         logger.debug("Converting expression {} to RPN started", tokenExpression);
+
         TokenExpression rpnExpression = new TokenExpression();
         LinkedList<OperatorToken> operatorStack = new LinkedList<>();
         tokenExpression.getTokens().forEach(token -> {
             if (token instanceof ComparisonToken) {
+                //если токен - сравнение, добавляем токен в результат
                 rpnExpression.addToken(token);
             } else if (token instanceof OperatorToken) {
+                //если токен - оператор, обрабатываем оператор
                 processOperator(rpnExpression, (OperatorToken) token, operatorStack);
             }
         });
+        // добавляем все оставшиеся операторы из стека операторов в результат
         while (!operatorStack.isEmpty()) {
             rpnExpression.addToken(operatorStack.pop());
         }
@@ -41,12 +45,23 @@ public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
         return rpnExpression;
     }
 
+    /**
+     * Обрабатывает оператор из исходного выражения
+     * @param rpnExpression результат
+     * @param operator оператор
+     * @param operatorStack стек операторов
+     * @throws IllegalArgumentException, если число закрывающих скобок больше чем число открывающих
+     */
     private void processOperator(TokenExpression rpnExpression, OperatorToken operator,
                                  LinkedList<OperatorToken> operatorStack) {
-        if (operator == OperatorToken.NOT) {
+        //если оператор - ! или (, добавляем его в стек операторов
+        if (operator == OperatorToken.NOT | operator == OperatorToken.LEFT_PARENTHESIS) {
             operatorStack.push(operator);
         }
         if (operator == OperatorToken.AND || operator == OperatorToken.OR) {
+            /* если оператор - & или |, пока не найден оператор наверху стека с меньшим приоритетом чем у текущего,
+            перекладываем оператор сверху стека в результат
+            Добавляем текущий оператор в стек */
             OperatorToken topOfOperatorStack;
             while (!operatorStack.isEmpty() &&
                     (topOfOperatorStack = operatorStack.peekFirst()) != null &&
@@ -57,10 +72,8 @@ public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
             }
             operatorStack.push(operator);
         }
-        if (operator == OperatorToken.LEFT_PARENTHESIS) {
-            operatorStack.push(operator);
-        }
         if (operator == OperatorToken.RIGHT_PARENTHESIS) {
+            //пока не найдена открывающая скобка, перекладываем все операторы из стека в результат
             boolean leftParenFound = false;
             while (operatorStack.peekFirst() != null && !leftParenFound) {
                 if (operatorStack.peekFirst() == OperatorToken.LEFT_PARENTHESIS) {
@@ -69,10 +82,12 @@ public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
                     rpnExpression.addToken(operatorStack.pop());
                 }
             }
+            /* если нашли, удаляем скобку, иначе выбрасываем исключение,
+            так как не найдена открывающая скобка для закрывающей */
             if (leftParenFound) {
                 operatorStack.pop();
             } else {
-                throw new IllegalArgumentException("Number of right parens more than number of left");
+                throw new IllegalArgumentException("Number of right parentheses more than number of left");
             }
         }
     }
