@@ -8,27 +8,50 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * todo javadoc
+ * Класс, для хранения выражения контроля доступа в объектном виде
  */
 public class TokenExpression {
     private final List<Token> tokens;
 
+    /**
+     * Создает новое пустое выражение
+     */
     public TokenExpression() {
         this.tokens = new ArrayList<>();
     }
 
+    /**
+     * Возвращает все токены выражения
+     *
+     * @return все токены выражения
+     */
     public List<Token> getTokens() {
         return tokens;
     }
 
+    /**
+     * Добавляет {@link Token} в выражение
+     *
+     * @param token {@link Token} для добавления
+     */
     public void addToken(Token token) {
         tokens.add(token);
     }
 
+    /**
+     * Добавляет все {@link Token} из списка в выражение
+     *
+     * @param tokens список {@link Token} для добавления
+     */
     public void addAllTokens(List<Token> tokens) {
         this.tokens.addAll(tokens);
     }
 
+    /**
+     * Проверяет, является ли выражение пустым
+     *
+     * @return true, если нет токенов в выражении, иначе false
+     */
     public boolean isEmpty() {
         return tokens.isEmpty();
     }

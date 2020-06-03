@@ -33,6 +33,7 @@ public class AuthException extends RuntimeException implements GraphQLError {
 
     /**
      * Создает исключение с информацией об объекте, к которому был запрещен доступ
+     *
      * @param ruleTargetInfo объект, к которому был запрещен доступ
      */
     public AuthException(RuleTargetInfo ruleTargetInfo) {

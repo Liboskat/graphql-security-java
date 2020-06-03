@@ -164,7 +164,7 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
      * Возвращает все простые импликанты из некомбинируемых минтермов
      *
      * @param numberOfInitialTrueMinterms число всех минтермов, дающих 1
-     * @param notMatchableMinterms минтермы, которые больше нельзя скомбинировать с другими
+     * @param notMatchableMinterms        минтермы, которые больше нельзя скомбинировать с другими
      * @return все простые импликанты
      */
     private Set<Minterm> getEssentialImplicants(int numberOfInitialTrueMinterms,
@@ -246,10 +246,11 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
 
     /**
      * Если есть, добавляет основной импликант для минтерма, иначе добавляет минтерм в список непокрытых импликантами
-     * @param initialMintermIndex индекс минтерма
+     *
+     * @param initialMintermIndex  индекс минтерма
      * @param notMatchableMinterms некомбинируемые минтермы
-     * @param essentialImplicants основные импликанты
-     * @param notCrossedMinterms минтермы, непокрытые импликантами
+     * @param essentialImplicants  основные импликанты
+     * @param notCrossedMinterms   минтермы, непокрытые импликантами
      */
     private void addEssentialImplicantOrElseAddToNotCrossed(int initialMintermIndex, Set<Minterm> notMatchableMinterms,
                                                             Set<Minterm> essentialImplicants,
@@ -266,7 +267,7 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
      * Возвращает простой импликант для минтерма
      *
      * @param indexOfInitialTrueMinterm индекс минтерма
-     * @param notMatchableMinterms некомбинируемые минтермы
+     * @param notMatchableMinterms      некомбинируемые минтермы
      * @return если число пересечений с некомбинируемыми минтермами = 1,
      * возвращаем {@link Optional} с импликантом - некомбинируемым минтермом,
      * иначе возвращаем {@link Optional#empty()}
@@ -290,7 +291,8 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
     /**
      * Возвращает всевозможные комбинации для списков минтермов
      * (комбинация создается, если два минтерма отличаются на 1 бит)
-     * @param first первый список минтермов
+     *
+     * @param first  первый список минтермов
      * @param second второй список минтермов
      * @return всевозможные комбинации для списков минтермов
      */
@@ -441,7 +443,8 @@ public class QuineMcCluskeyExpressionSimplifier implements ExpressionSimplifier 
         /**
          * Возвращает комбинацию двух булевых представлений,
          * если два бита отличаются, то ставится бит ANY
-         * @param first первое булевое представление
+         *
+         * @param first  первое булевое представление
          * @param second второе булевое представление
          * @return комбинация двух булевых представлений
          */

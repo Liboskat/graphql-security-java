@@ -5,7 +5,9 @@ import java.util.Objects;
 import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
 
 /**
- * todo javadoc
+ * Используется в качестве ключа в {@link ru.liboskat.graphql.security.storage.AccessRuleStorage} и
+ * передается в {@link ru.liboskat.graphql.security.exceptions.AuthException}в случае ошибок при выполнении запроса,
+ * хранит информацию о поле входного объекта
  */
 public class InputFieldInfo implements RuleTargetInfo {
     private final String inputTypeName;
@@ -16,14 +18,28 @@ public class InputFieldInfo implements RuleTargetInfo {
         this.fieldName = fieldName;
     }
 
+    /**
+     * @return название родительского типа
+     */
     public String getInputTypeName() {
         return inputTypeName;
     }
 
+    /**
+     * @return название поля
+     */
     public String getFieldName() {
         return fieldName;
     }
 
+    /**
+     * Создает новый {@link InputFieldInfo} на основе переданных параметров
+     *
+     * @param inputTypeName название родительского типа
+     * @param fieldName     название поля
+     * @return новый {@link InputFieldInfo} на основе переданных параметров
+     * @throws IllegalArgumentException, если название типа или название поля являются null или пустыми
+     */
     public static InputFieldInfo newInputFieldInfo(String inputTypeName, String fieldName) {
         if (isNullOrEmpty(inputTypeName) || isNullOrEmpty(fieldName)) {
             throw new IllegalArgumentException("InputTypeName and fieldName can't be null or empty");

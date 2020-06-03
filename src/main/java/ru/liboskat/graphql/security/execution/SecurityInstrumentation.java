@@ -448,10 +448,11 @@ public class SecurityInstrumentation extends SimpleInstrumentation {
 
     /**
      * Проверяет правило контроля доступа
+     *
      * @param operationType тип операции
-     * @param rule выражение контроля доступа
-     * @param ctx контекст безопасности
-     * @param arguments аргументы поля, могут быть null
+     * @param rule          выражение контроля доступа
+     * @param ctx           контекст безопасности
+     * @param arguments     аргументы поля, могут быть null
      * @throws AuthException если доступ запрещен
      */
     private void checkRule(OperationType operationType, TokenExpressionRule rule, SecurityContext ctx,

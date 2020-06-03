@@ -201,7 +201,7 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * В этом методе происходит чтение названия аргумента поля GraphQL
-
+     *
      * @param isLeft находится ли название аргумента слева в сравнении
      */
     private void readGraphQLArgumentNameOperand(boolean isLeft) {
@@ -515,7 +515,8 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * В этом методе происходит чтение названий аргумента и переменной контекста
-     * @param isLeft находится ли операнд слева от сравнения
+     *
+     * @param isLeft         находится ли операнд слева от сравнения
      * @param isArgumentName является ли операнд названием аргумента
      */
     private void readVariableNameOperand(boolean isLeft, boolean isArgumentName) {
@@ -553,9 +554,10 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * В этом методе происходит проверка: является ли символ возможным для названия аргумента или контекста
-     * @param character символ
+     *
+     * @param character      символ
      * @param isArgumentName является ли операнд названием аргумента
-     * @param position позиция в названии операнда
+     * @param position       позиция в названии операнда
      * @return возможность наличия символа в названии
      */
     private boolean checkIsVariableNamePossibleCharacter(char character, boolean isArgumentName, int position) {
@@ -571,9 +573,10 @@ public class SimpleExpressionParser implements ExpressionParser {
     }
 
     /**
-     *  В этом методе происходит сохранение информации об операнде - название аргумента или переменной контекста
+     * В этом методе происходит сохранение информации об операнде - название аргумента или переменной контекста
+     *
      * @param isArgumentName является ли названием аргумента
-     * @param isLeft находится ли слева от сравнения
+     * @param isLeft         находится ли слева от сравнения
      */
     private void endVariableNameReading(boolean isArgumentName, boolean isLeft) {
         OperandState operandState = isLeft ? state.leftOperandState :
@@ -586,6 +589,7 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * В этом методе происходит сохранение информации об операнде и переход из чтения операнда
+     *
      * @param isLeft находится ли слева от сравнения
      */
     private void endOperandReading(boolean isLeft) {
@@ -628,6 +632,7 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * В этом методе происходит добавление сравнения значения IN и левого операнда в выражение
+     *
      * @param inValue значение IN
      */
     private void addInValueComparison(String inValue) {
@@ -648,6 +653,7 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * В этом методе происходит парсинг и сохраненние типа и значения объекта
+     *
      * @param readingObjectState состояние левого или правого операнда
      */
     private void parseAndSaveObject(OperandState readingObjectState) {
@@ -719,10 +725,11 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * Метод для получения даты/времени java.time из строки
-     * @param value строка с датой/временем
+     *
+     * @param value         строка с датой/временем
      * @param temporalQuery temporalQuery необходимого типа java.time
-     * @param formatter dateTimeFormatter для преобразования строки в необходимый тип
-     * @param <T> тип java.time ({@link ZonedDateTime}, {@link LocalDateTime}, {@link LocalTime}, {@link LocalDate})
+     * @param formatter     dateTimeFormatter для преобразования строки в необходимый тип
+     * @param <T>           тип java.time ({@link ZonedDateTime}, {@link LocalDateTime}, {@link LocalTime}, {@link LocalDate})
      * @return {@link Optional} с полученным значением даты/времени
      * или {@link Optional#empty()} в случае неудачного преобразования
      */
@@ -737,6 +744,7 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * Метод для получения числа из строки
+     *
      * @param value строка с числом
      * @return {@link Optional} с полученным значением числа ({@link Long} или {@link Double})
      * или {@link Optional#empty()} в случае неудачного преобразования
@@ -753,6 +761,7 @@ public class SimpleExpressionParser implements ExpressionParser {
 
     /**
      * Метод для получения ValueType из объекта числа
+     *
      * @param number число
      * @return тип значения
      */

@@ -5,7 +5,9 @@ import java.util.Objects;
 import static ru.liboskat.graphql.security.utils.StringUtils.isNullOrEmpty;
 
 /**
- * todo javadoc
+ * Используется в качестве ключа в {@link ru.liboskat.graphql.security.storage.AccessRuleStorage} и
+ * передается в {@link ru.liboskat.graphql.security.exceptions.AuthException} в случае ошибок при выполнении запроса,
+ * хранит информацию об аргументе поля
  */
 public class ArgumentInfo implements RuleTargetInfo {
     private final String typeName;
@@ -18,20 +20,39 @@ public class ArgumentInfo implements RuleTargetInfo {
         this.argumentName = argumentName;
     }
 
+    /**
+     * @return название родительского типа
+     */
     public String getTypeName() {
         return typeName;
     }
 
+    /**
+     * @return название поля
+     */
     public String getFieldName() {
         return fieldName;
     }
 
+    /**
+     * @return название аргумента
+     */
     public String getArgumentName() {
         return argumentName;
     }
 
+    /**
+     * Создает новый {@link ArgumentInfo} на основе переданных параметров
+     *
+     * @param typeName     название родительского типа
+     * @param fieldName    название поля
+     * @param argumentName название аргумента поля
+     * @return новый {@link ArgumentInfo} на основе переданных параметров
+     * @throws IllegalArgumentException, если название типа или название поля или название аргумента
+     *                                   являются null или пустыми
+     */
     public static ArgumentInfo newArgumentInfo(String typeName, String fieldName, String argumentName) {
-        if (isNullOrEmpty(typeName) || isNullOrEmpty(fieldName)  || isNullOrEmpty(argumentName)) {
+        if (isNullOrEmpty(typeName) || isNullOrEmpty(fieldName) || isNullOrEmpty(argumentName)) {
             throw new IllegalArgumentException("TypeName, fieldName and argumentName can't be null or empty");
         }
         return new ArgumentInfo(typeName, fieldName, argumentName);

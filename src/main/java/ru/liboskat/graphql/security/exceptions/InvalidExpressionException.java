@@ -10,7 +10,8 @@ public class InvalidExpressionException extends RuntimeException {
 
     /**
      * Создает исключение с некорректным выражением и неким сообщением
-     * @param message сообщение
+     *
+     * @param message    сообщение
      * @param expression некорректное выражение
      */
     public InvalidExpressionException(String message, String expression) {
@@ -19,8 +20,9 @@ public class InvalidExpressionException extends RuntimeException {
 
     /**
      * Создает исключение с некорректным выражением, неким сообщением и позицией ошибки
-     * @param position позиция ошибки
-     * @param message сообщение
+     *
+     * @param position   позиция ошибки
+     * @param message    сообщение
      * @param expression некорректное выражение
      */
     public InvalidExpressionException(String message, int position, String expression) {
@@ -29,9 +31,10 @@ public class InvalidExpressionException extends RuntimeException {
 
     /**
      * Создает исключение с некорректным выражением, позицией ошибки, ожидаемым и полученным символом
-     * @param symbol некорректный полученный символ
-     * @param position позиция ошибки
-     * @param expected сообщение с информацией об ожидаемых символах
+     *
+     * @param symbol     некорректный полученный символ
+     * @param position   позиция ошибки
+     * @param expected   сообщение с информацией об ожидаемых символах
      * @param expression некорректное выражение
      */
     public InvalidExpressionException(char symbol, int position, String expected, String expression) {

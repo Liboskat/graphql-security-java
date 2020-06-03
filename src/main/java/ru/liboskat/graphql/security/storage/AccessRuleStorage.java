@@ -79,7 +79,7 @@ public class AccessRuleStorage {
 
     /**
      * @param objectName название объекта
-     * @param fieldName название поля объекта
+     * @param fieldName  название поля объекта
      * @return {@link Optional} с выражением для поля объекта, если выражения нет - {@link Optional#empty()}
      */
     public Optional<TokenExpressionRule> getFieldRule(String objectName, String fieldName) {
@@ -87,8 +87,8 @@ public class AccessRuleStorage {
     }
 
     /**
-     * @param objectName название объекта
-     * @param fieldName название поля объекта
+     * @param objectName   название объекта
+     * @param fieldName    название поля объекта
      * @param argumentName название аргумента поля
      * @return {@link Optional} с выражением для аргумента поля, если выражения нет - {@link Optional#empty()}
      */
@@ -106,7 +106,7 @@ public class AccessRuleStorage {
 
     /**
      * @param inputObjectName название входного объекта
-     * @param inputFieldName название поля входного объекта
+     * @param inputFieldName  название поля входного объекта
      * @return {@link Optional} с выражением для поля входного объекта, если выражения нет - {@link Optional#empty()}
      */
     public Optional<TokenExpressionRule> getInputFieldRule(String inputObjectName, String inputFieldName) {

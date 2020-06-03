@@ -1,7 +1,7 @@
 package ru.liboskat.graphql.security.storage.token;
 
 /**
- * todo javadoc
+ * Хранит информацию об операторе
  */
 public enum OperatorToken implements Token {
     LEFT_PARENTHESIS("("),
@@ -22,6 +22,9 @@ public enum OperatorToken implements Token {
         this.stringRepresentation = stringRepresentation;
     }
 
+    /**
+     * @return приоритет оператора
+     */
     public int getPrecedence() {
         return precedence;
     }

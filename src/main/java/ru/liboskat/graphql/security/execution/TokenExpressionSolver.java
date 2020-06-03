@@ -10,8 +10,8 @@ import java.util.Map;
 public interface TokenExpressionSolver {
     /**
      * @param expression выражение для решения
-     * @param context контекст безопасности
-     * @param arguments аргументы запрашиваемого поля
+     * @param context    контекст безопасности
+     * @param arguments  аргументы запрашиваемого поля
      * @return результат решения выражения
      */
     boolean solve(TokenExpression expression, SecurityContext context, Map<String, String> arguments);

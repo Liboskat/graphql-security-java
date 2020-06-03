@@ -9,10 +9,11 @@ import java.time.temporal.Temporal;
 public class TemporalToZonedDateTimeConverter {
     /**
      * Конвертирует {@link LocalTime}, {@link LocalDate}, {@link LocalDateTime} в {@link ZonedDateTime}
+     *
      * @param value объект даты/времени {@link java.time}
      * @return объект, сконвертированный в {@link ZonedDateTime}
      * @throws IllegalArgumentException, если тип не является одним из {@link LocalTime}, {@link LocalDate},
-     * {@link LocalDateTime}, {@link ZonedDateTime}
+     *                                   {@link LocalDateTime}, {@link ZonedDateTime}
      */
     public static ZonedDateTime convert(Temporal value) {
         if (value instanceof ZonedDateTime) {

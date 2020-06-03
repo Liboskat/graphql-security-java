@@ -86,7 +86,8 @@ public class TokenExpressionSolverImpl implements TokenExpressionSolver {
 
     /**
      * Сравнивает два объекта
-     * @param firstValue первый объект
+     *
+     * @param firstValue  первый объект
      * @param secondValue второй объект
      * @return true, если объекты равны, иначе false
      * @throws IllegalArgumentException, если ошибка при конвертации объекта
@@ -110,8 +111,9 @@ public class TokenExpressionSolverImpl implements TokenExpressionSolver {
 
     /**
      * Возвращает результат неравенства объектов в зависимости от оператора сравнения
-     * @param firstValue первый объект (число или дата / время)
-     * @param secondValue второй объект (число или дата / время)
+     *
+     * @param firstValue     первый объект (число или дата / время)
+     * @param secondValue    второй объект (число или дата / время)
      * @param comparisonType тип сравнения
      * @return результат сравнения
      * @throws IllegalArgumentException, ошибка при конвертации объекта или невозможность сравнения переданных объектов
@@ -139,7 +141,8 @@ public class TokenExpressionSolverImpl implements TokenExpressionSolver {
 
     /**
      * Возвращает булевый результат в зависимости от результата сравнения и типа сравнения
-     * @param compareResult результат сравнения
+     *
+     * @param compareResult  результат сравнения
      * @param comparisonType тип сравнения
      * @return булевый результат в зависимости от результата сравнения и типа сравнения
      */
@@ -160,9 +163,9 @@ public class TokenExpressionSolverImpl implements TokenExpressionSolver {
      * Возвращает значение в зависимости от типа
      *
      * @param tokenValue объект
-     * @param valueType тип значения
-     * @param context контекст безопасности
-     * @param arguments аргументы поля
+     * @param valueType  тип значения
+     * @param context    контекст безопасности
+     * @param arguments  аргументы поля
      * @return значение для дальнейшего сравнения
      */
     private Object getValue(Object tokenValue, ComparisonToken.ValueType valueType,

@@ -18,6 +18,7 @@ public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
     /**
      * Конвертирует выражение {@link TokenExpression} в инфиксной записи в обратную польскую,
      * используя алгоритм сортировочной станции
+     *
      * @param tokenExpression {@link TokenExpression} в инфиксной записи
      * @return {@link TokenExpression} в обратной польской записи
      * @throws IllegalArgumentException если число закрывающих скобок больше числа открывающих
@@ -47,8 +48,9 @@ public class ShuntingYardExpressionConverter implements RpnExpressionConverter {
 
     /**
      * Обрабатывает оператор из исходного выражения
+     *
      * @param rpnExpression результат
-     * @param operator оператор
+     * @param operator      оператор
      * @param operatorStack стек операторов
      * @throws IllegalArgumentException, если число закрывающих скобок больше чем число открывающих
      */
